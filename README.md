@@ -1,4 +1,6 @@
-# PT-SaaS – Terminmanagement & Buchhaltung für Personal Trainer
+# PT-SAAP
+
+App for Personal trainers to organize Booking, Payment, Administration and trainings
 
 MVP-Backend für ein SaaS-Produkt, das Personal Trainer entweder als
 Website-Widget oder als eigenständige App nutzen können. Beide Kanäle
