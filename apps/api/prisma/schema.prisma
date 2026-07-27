@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Ein Tenant = ein Personal Trainer (Kunde des SaaS-Produkts)
+model Tenant {
+  id               String   @id @default(uuid())
+  name             String
+  email            String   @unique
+  passwordHash     String
+  taxId            String?
+  subscriptionPlan String   @default("trial")
+  publicApiKey     String   @unique @default(cuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  customers    Customer[]
+  services     Service[]
+  appointments Appointment[]
+  invoices     Invoice[]
+
+  @@map("tenants")
+}
+
+// Kunde eines Trainers (Trainingsklient)
+model Customer {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  email     String?
+  phone     String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  appointments Appointment[]
+  packages     CustomerPackage[]
+  invoices     Invoice[]
+
+  @@index([tenantId])
+  @@map("customers")
+}
+
+enum ServiceType {
+  SINGLE
+  PACKAGE
+  SUBSCRIPTION
+}
+
+// Leistung/Angebot eines Trainers (Einzelstunde, 10er-Karte, Abo)
+model Service {
+  id          String      @id @default(uuid())
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  name        String
+  price       Decimal     @db.Decimal(10, 2)
+  durationMin Int
+  type        ServiceType @default(SINGLE)
+  createdAt   DateTime    @default(now())
+
+  appointments Appointment[]
+  packages     CustomerPackage[]
+
+  @@index([tenantId])
+  @@map("services")
+}
+
+// Gekauftes Paket/Abo eines Kunden - trennt "gekauft" von "gebucht"
+model CustomerPackage {
+  id                String    @id @default(uuid())
+  customerId        String
+  customer          Customer  @relation(fields: [customerId], references: [id])
+  serviceId         String
+  service           Service   @relation(fields: [serviceId], references: [id])
+  remainingSessions Int
+  validUntil        DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([customerId])
+  @@map("customer_packages")
+}
+
+enum AppointmentStatus {
+  BOOKED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+model Appointment {
+  id         String            @id @default(uuid())
+  tenantId   String
+  tenant     Tenant            @relation(fields: [tenantId], references: [id])
+  customerId String
+  customer   Customer          @relation(fields: [customerId], references: [id])
+  serviceId  String
+  service    Service           @relation(fields: [serviceId], references: [id])
+  startTime  DateTime
+  endTime    DateTime
+  status     AppointmentStatus @default(BOOKED)
+  createdAt  DateTime          @default(now())
+
+  invoice Invoice?
+
+  @@index([tenantId, startTime])
+  @@map("appointments")
+}
+
+enum InvoiceStatus {
+  OPEN
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  tenantId      String
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  customerId    String
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  appointmentId String?       @unique
+  appointment   Appointment?  @relation(fields: [appointmentId], references: [id])
+  invoiceNumber String        @unique
+  amount        Decimal       @db.Decimal(10, 2)
+  taxRate       Decimal       @db.Decimal(5, 2) @default(0)
+  status        InvoiceStatus @default(OPEN)
+  issuedAt      DateTime      @default(now())
+  dueAt         DateTime?
+
+  payments Payment[]
+
+  @@index([tenantId])
+  @@map("invoices")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id                    String        @id @default(uuid())
+  invoiceId             String
+  invoice               Invoice       @relation(fields: [invoiceId], references: [id])
+  provider              String
+  providerTransactionId String?
+  amount                Decimal       @db.Decimal(10, 2)
+  status                PaymentStatus @default(PENDING)
+  paidAt                DateTime?
+  createdAt             DateTime      @default(now())
+
+  @@index([invoiceId])
+  @@map("payments")
+}
