@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
@@ -42,6 +43,15 @@ export class CustomersService {
 
   async remove(tenantId: string, id: string) {
     await this.findOne(tenantId, id);
-    return this.prisma.customer.delete({ where: { id } });
+    try {
+      return await this.prisma.customer.delete({ where: { id } });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2003') {
+        throw new ConflictException(
+          'Kunde kann nicht gelöscht werden, solange noch Termine, Rechnungen oder Pakete existieren',
+        );
+      }
+      throw err;
+    }
   }
 }

@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
@@ -35,6 +36,15 @@ export class ServicesService {
 
   async remove(tenantId: string, id: string) {
     await this.findOne(tenantId, id);
-    return this.prisma.service.delete({ where: { id } });
+    try {
+      return await this.prisma.service.delete({ where: { id } });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2003') {
+        throw new ConflictException(
+          'Leistung kann nicht gelöscht werden, solange noch Termine oder Pakete darauf verweisen',
+        );
+      }
+      throw err;
+    }
   }
 }
