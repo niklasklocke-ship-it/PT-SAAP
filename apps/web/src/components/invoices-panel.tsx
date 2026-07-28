@@ -6,13 +6,25 @@ import {
   createInvoice,
   cancelInvoice,
   listCustomers,
+  listAppointments,
   ApiError,
   type Invoice,
   type Customer,
+  type Appointment,
 } from "@/lib/api";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("de-DE");
+}
+
+function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 const STATUS_LABEL: Record<Invoice["status"], string> = {
@@ -164,9 +176,33 @@ function NewInvoiceForm({
   onCreated: () => Promise<void>;
 }) {
   const [selectedCustomerId, setSelectedCustomerId] = useState(customerId ?? "");
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointmentId, setAppointmentId] = useState("");
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    // Ohne ausgewählten Kunden bleibt appointments einfach ungenutzt - die
+    // Anzeige ist im JSX ohnehin an selectedCustomerId gebunden.
+    if (!selectedCustomerId) return;
+    listAppointments(token)
+      .then((all) => {
+        const forCustomer = all
+          .filter((a) => a.customerId === selectedCustomerId)
+          .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+        setAppointments(forCustomer);
+      })
+      .catch(() => setAppointments([]));
+  }, [token, selectedCustomerId]);
+
+  function handleAppointmentChange(id: string) {
+    setAppointmentId(id);
+    const appointment = appointments.find((a) => a.id === id);
+    if (appointment) {
+      setAmount(appointment.service.price);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -177,8 +213,10 @@ function NewInvoiceForm({
       await createInvoice(token, {
         customerId: selectedCustomerId,
         amount: Number(amount),
+        appointmentId: appointmentId || undefined,
       });
       setAmount("");
+      setAppointmentId("");
       await onCreated();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Anlegen fehlgeschlagen");
@@ -206,6 +244,27 @@ function NewInvoiceForm({
             {customers?.map((c) => (
               <option key={c.id} value={c.id} className="text-black">
                 {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {selectedCustomerId && appointments.length > 0 && (
+        <div>
+          <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Termin (optional)
+          </label>
+          <select
+            value={appointmentId}
+            onChange={(e) => handleAppointmentChange(e.target.value)}
+            className="rounded border border-black/15 bg-transparent px-3 py-2 text-black dark:border-white/15 dark:text-zinc-50"
+          >
+            <option value="" className="text-black">
+              Kein Termin - Betrag manuell
+            </option>
+            {appointments.map((a) => (
+              <option key={a.id} value={a.id} className="text-black">
+                {formatDateTime(a.startTime)} · {a.service.name} ({a.service.price} €)
               </option>
             ))}
           </select>

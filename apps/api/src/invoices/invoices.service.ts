@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
@@ -47,6 +47,12 @@ export class InvoicesService {
       });
       if (!appointment) {
         throw new NotFoundException('Termin nicht gefunden');
+      }
+      const existingInvoice = await this.prisma.invoice.findUnique({
+        where: { appointmentId: dto.appointmentId },
+      });
+      if (existingInvoice) {
+        throw new ConflictException('Für diesen Termin existiert bereits eine Rechnung');
       }
     }
 
