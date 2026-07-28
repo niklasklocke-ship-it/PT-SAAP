@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -44,6 +46,7 @@ export class ServicesController {
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   remove(@CurrentTenant() tenant: { tenantId: string }, @Param('id') id: string) {
     return this.servicesService.remove(tenant.tenantId, id);
   }

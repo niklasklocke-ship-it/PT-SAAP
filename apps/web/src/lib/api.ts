@@ -24,10 +24,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new ApiError(res.status, Array.isArray(message) ? message.join(", ") : message);
   }
 
-  if (res.status === 204) {
-    return undefined as T;
-  }
-  return res.json();
+  // Manche Endpunkte (z.B. DELETE) antworten mit leerem Body auch bei
+  // Status != 204 - res.json() würde dann mit einem Parse-Fehler
+  // fehlschlagen, obwohl der Request erfolgreich war.
+  const text = await res.text();
+  return text ? (JSON.parse(text) as T) : (undefined as T);
 }
 
 export interface Tenant {
@@ -113,4 +114,43 @@ export function updateCustomer(token: string, id: string, data: Partial<Customer
 
 export function deleteCustomer(token: string, id: string) {
   return authRequest<void>(token, `/customers/${id}`, { method: "DELETE" });
+}
+
+export interface ExerciseLog {
+  id: string;
+  customerId: string;
+  category: string | null;
+  exerciseName: string;
+  weight: string | null;
+  sets: number | null;
+  reps: number | null;
+  performedAt: string;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface ExerciseLogInput {
+  customerId: string;
+  category?: string;
+  exerciseName: string;
+  weight?: number;
+  sets?: number;
+  reps?: number;
+  performedAt: string;
+  notes?: string;
+}
+
+export function listExerciseLogs(token: string, customerId: string) {
+  return authRequest<ExerciseLog[]>(token, `/exercise-logs/customer/${customerId}`);
+}
+
+export function createExerciseLog(token: string, data: ExerciseLogInput) {
+  return authRequest<ExerciseLog>(token, "/exercise-logs", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteExerciseLog(token: string, id: string) {
+  return authRequest<void>(token, `/exercise-logs/${id}`, { method: "DELETE" });
 }
