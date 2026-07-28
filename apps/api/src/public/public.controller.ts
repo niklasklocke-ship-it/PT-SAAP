@@ -3,6 +3,7 @@ import { ApiKeyGuard } from '../common/guards/api-key.guard';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
 import { PublicService } from './public.service';
 import { CreatePublicBookingDto } from './dto/create-public-booking.dto';
+import { AvailabilityQueryDto } from './dto/availability-query.dto';
 
 // Alle Endpunkte hier werden vom Website-Widget und der Kunden-App
 // aufgerufen - abgesichert über den öffentlichen API-Key des Trainers,
@@ -20,10 +21,9 @@ export class PublicController {
   @Get('availability')
   getBusySlots(
     @CurrentTenant() tenant: { tenantId: string },
-    @Query('from') from: string,
-    @Query('to') to: string,
+    @Query() query: AvailabilityQueryDto,
   ) {
-    return this.publicService.getBusySlots(tenant.tenantId, from, to);
+    return this.publicService.getBusySlots(tenant.tenantId, query.from, query.to);
   }
 
   @Post('appointments')

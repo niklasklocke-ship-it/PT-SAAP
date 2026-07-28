@@ -22,13 +22,15 @@ export class PublicService {
 
   // Liefert bereits belegte Zeiträume, damit das Widget freie Slots
   // client-seitig berechnen kann, ohne interne Kundendaten preiszugeben.
+  // Überschneidungslogik (nicht "komplett enthalten"), damit ein Termin,
+  // der schon vor "from" beginnt und hineinragt, nicht als frei erscheint.
   async getBusySlots(tenantId: string, from: string, to: string) {
     const appointments = await this.prisma.appointment.findMany({
       where: {
         tenantId,
         status: { in: ['BOOKED', 'COMPLETED'] },
-        startTime: { gte: new Date(from) },
-        endTime: { lte: new Date(to) },
+        startTime: { lt: new Date(to) },
+        endTime: { gt: new Date(from) },
       },
       select: { startTime: true, endTime: true },
     });

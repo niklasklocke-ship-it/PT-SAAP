@@ -14,6 +14,7 @@ import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { FindAppointmentsQueryDto } from './dto/find-appointments-query.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('appointments')
@@ -28,10 +29,9 @@ export class AppointmentsController {
   @Get()
   findAll(
     @CurrentTenant() tenant: { tenantId: string },
-    @Query('from') from?: string,
-    @Query('to') to?: string,
+    @Query() query: FindAppointmentsQueryDto,
   ) {
-    return this.appointmentsService.findAll(tenant.tenantId, from, to);
+    return this.appointmentsService.findAll(tenant.tenantId, query.from, query.to);
   }
 
   @Get(':id')
