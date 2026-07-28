@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getCustomer, updateCustomer, ApiError, type Customer } from "@/lib/api";
+import { ProgressSection } from "./progress-section";
 
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
@@ -23,7 +24,7 @@ export default function CustomerDetailPage() {
 
   if (loadError) {
     return (
-      <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
+      <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <p className="text-sm text-red-600 dark:text-red-400">{loadError}</p>
         <Link href="/dashboard/customers" className="mt-4 inline-block underline">
           Zurück zur Kundenliste
@@ -34,14 +35,14 @@ export default function CustomerDetailPage() {
 
   if (!customer || !token) {
     return (
-      <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
+      <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <p className="text-zinc-600 dark:text-zinc-400">Lädt...</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
+    <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
       <Link
         href="/dashboard/customers"
         className="mb-6 inline-block text-sm underline text-zinc-600 dark:text-zinc-400"
@@ -59,6 +60,7 @@ export default function CustomerDetailPage() {
 
       <TrainingGoalsSection token={token} customer={customer} onSaved={setCustomer} />
       <TrainingPlanSection token={token} customer={customer} onSaved={setCustomer} />
+      <ProgressSection token={token} customerId={customer.id} />
     </div>
   );
 }

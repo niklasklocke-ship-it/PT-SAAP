@@ -39,8 +39,9 @@ model Customer {
   createdAt DateTime @default(now())
 
   // Trainingsziele: kurze Übersicht (z.B. in der Kundenliste) + optionales
-  // Detailfeld für eine ausführlichere Beschreibung. Trainingsplan bewusst
-  // als einfaches Freitextfeld (kein eigenes Übungs-Datenmodell im MVP).
+  // Detailfeld für eine ausführlichere Beschreibung. Trainingsplan als
+  // einfaches Freitextfeld ("was soll trainiert werden") - der tatsächliche
+  // Fortschritt/die Gewichte werden strukturiert in ExerciseLog erfasst.
   trainingGoalsSummary String?
   trainingGoalsDetail  String?
   trainingPlan         String?
@@ -48,9 +49,33 @@ model Customer {
   appointments Appointment[]
   packages     CustomerPackage[]
   invoices     Invoice[]
+  exerciseLogs ExerciseLog[]
 
   @@index([tenantId])
   @@map("customers")
+}
+
+// Ein einzelner geloggter Trainingssatz/-eintrag für eine Übung, z.B.
+// "Bankdrücken, 60kg, 3x8, 2026-07-28" - Grundlage für den
+// Fortschritts-/Gewichtsverlauf pro Übung im Kundendetail.
+// category (z.B. "Push"/"Pull"/"Legs") ist freier Text, nicht enum - der
+// Trainer legt eigene Kategorien fest. Wird genutzt, um im Frontend die
+// Übungsvorschläge auf frühere Einträge derselben Kategorie einzugrenzen.
+model ExerciseLog {
+  id           String   @id @default(uuid())
+  customerId   String
+  customer     Customer @relation(fields: [customerId], references: [id])
+  category     String?
+  exerciseName String
+  weight       Decimal? @db.Decimal(6, 2)
+  sets         Int?
+  reps         Int?
+  performedAt  DateTime
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  @@index([customerId, exerciseName])
+  @@map("exercise_logs")
 }
 
 enum ServiceType {

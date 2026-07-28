@@ -8,6 +8,7 @@ import { CustomerPackagesModule } from './customer-packages/customer-packages.mo
 import { InvoicesModule } from './invoices/invoices.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PublicModule } from './public/public.module';
+import { ExerciseLogsModule } from './exercise-logs/exercise-logs.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { PublicModule } from './public/public.module';
     InvoicesModule,
     PaymentsModule,
     PublicModule,
+    ExerciseLogsModule,
   ],
 })
 export class AppModule {}
