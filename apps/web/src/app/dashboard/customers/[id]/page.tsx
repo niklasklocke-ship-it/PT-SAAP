@@ -7,12 +7,14 @@ import { useAuth } from "@/lib/auth-context";
 import { getCustomer, updateCustomer, ApiError, type Customer } from "@/lib/api";
 import { ProgressSection } from "./progress-section";
 import { TrainingPlanSection } from "./training-plan-section";
+import { PackagesSection } from "./packages-section";
 import { InvoicesPanel } from "@/components/invoices-panel";
 
 const TABS = [
   { key: "ziele", label: "Trainingsziele" },
   { key: "plan", label: "Trainingsplan" },
   { key: "fortschritt", label: "Fortschritt" },
+  { key: "pakete", label: "Pakete & Abos" },
   { key: "rechnungen", label: "Rechnungen" },
 ] as const;
 
@@ -94,6 +96,7 @@ export default function CustomerDetailPage() {
       {activeTab === "fortschritt" && (
         <ProgressSection token={token} customerId={customer.id} />
       )}
+      {activeTab === "pakete" && <PackagesSection token={token} customerId={customer.id} />}
       {activeTab === "rechnungen" && (
         <InvoicesPanel token={token} customerId={customer.id} />
       )}

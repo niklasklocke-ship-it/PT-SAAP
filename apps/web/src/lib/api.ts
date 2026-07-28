@@ -434,3 +434,37 @@ export function syncGoogleCalendar(token: string) {
     method: "POST",
   });
 }
+
+export interface CustomerPackage {
+  id: string;
+  customerId: string;
+  serviceId: string;
+  remainingSessions: number;
+  validUntil: string | null;
+  createdAt: string;
+  service: Service;
+}
+
+export interface CustomerPackageInput {
+  customerId: string;
+  serviceId: string;
+  remainingSessions: number;
+  validUntil?: string;
+}
+
+export function listCustomerPackages(token: string, customerId: string) {
+  return authRequest<CustomerPackage[]>(token, `/customer-packages/customer/${customerId}`);
+}
+
+export function createCustomerPackage(token: string, data: CustomerPackageInput) {
+  return authRequest<CustomerPackage>(token, "/customer-packages", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function consumeCustomerPackageSession(token: string, id: string) {
+  return authRequest<CustomerPackage>(token, `/customer-packages/${id}/consume`, {
+    method: "POST",
+  });
+}
