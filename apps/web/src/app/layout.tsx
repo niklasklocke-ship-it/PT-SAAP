@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PT-SaaS Trainer-Dashboard",
+  title: "PT One",
   description: "Terminmanagement & Buchhaltung für Personal Trainer",
 };
 

@@ -26,7 +26,7 @@ export function DashboardNav() {
       <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-3">
         <div className="flex items-center gap-6">
           <Link href="/dashboard" className="font-semibold text-black dark:text-zinc-50">
-            PT-SaaS
+            PT One
           </Link>
           {NAV_ITEMS.map((item) => {
             const isActive = pathname?.startsWith(item.href);
