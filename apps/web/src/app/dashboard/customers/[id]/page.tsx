@@ -7,12 +7,23 @@ import { useAuth } from "@/lib/auth-context";
 import { getCustomer, updateCustomer, ApiError, type Customer } from "@/lib/api";
 import { ProgressSection } from "./progress-section";
 import { TrainingPlanSection } from "./training-plan-section";
+import { InvoicesPanel } from "@/components/invoices-panel";
+
+const TABS = [
+  { key: "ziele", label: "Trainingsziele" },
+  { key: "plan", label: "Trainingsplan" },
+  { key: "fortschritt", label: "Fortschritt" },
+  { key: "rechnungen", label: "Rechnungen" },
+] as const;
+
+type TabKey = (typeof TABS)[number]["key"];
 
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
   const { token } = useAuth();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>("ziele");
 
   useEffect(() => {
     if (!token) return;
@@ -54,14 +65,38 @@ export default function CustomerDetailPage() {
       <h1 className="mb-1 text-2xl font-semibold text-black dark:text-zinc-50">
         {customer.name}
       </h1>
-      <p className="mb-8 text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
         {customer.email ?? "keine E-Mail"}
         {customer.phone ? ` · ${customer.phone}` : ""}
       </p>
 
-      <TrainingGoalsSection token={token} customer={customer} onSaved={setCustomer} />
-      <TrainingPlanSection token={token} customerId={customer.id} />
-      <ProgressSection token={token} customerId={customer.id} />
+      <div className="mb-6 flex gap-4 border-b border-black/10 dark:border-white/10">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setActiveTab(tab.key)}
+            className={
+              activeTab === tab.key
+                ? "border-b-2 border-black px-1 pb-2 text-sm font-medium text-black dark:border-white dark:text-zinc-50"
+                : "border-b-2 border-transparent px-1 pb-2 text-sm font-medium text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
+            }
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "ziele" && (
+        <TrainingGoalsSection token={token} customer={customer} onSaved={setCustomer} />
+      )}
+      {activeTab === "plan" && <TrainingPlanSection token={token} customerId={customer.id} />}
+      {activeTab === "fortschritt" && (
+        <ProgressSection token={token} customerId={customer.id} />
+      )}
+      {activeTab === "rechnungen" && (
+        <InvoicesPanel token={token} customerId={customer.id} />
+      )}
     </div>
   );
 }

@@ -283,3 +283,42 @@ export function reorderTrainingExercises(token: string, sectionId: string, ids: 
     body: JSON.stringify({ ids }),
   });
 }
+
+export type InvoiceStatus = "OPEN" | "PAID" | "OVERDUE" | "CANCELLED";
+
+export interface Invoice {
+  id: string;
+  tenantId: string;
+  customerId: string;
+  appointmentId: string | null;
+  invoiceNumber: string;
+  amount: string;
+  taxRate: string;
+  status: InvoiceStatus;
+  issuedAt: string;
+  dueAt: string | null;
+  customer: Customer;
+}
+
+export interface InvoiceInput {
+  customerId: string;
+  appointmentId?: string;
+  amount: number;
+  taxRate?: number;
+  dueAt?: string;
+}
+
+export function listInvoices(token: string) {
+  return authRequest<Invoice[]>(token, "/invoices");
+}
+
+export function createInvoice(token: string, data: InvoiceInput) {
+  return authRequest<Invoice>(token, "/invoices", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function cancelInvoice(token: string, id: string) {
+  return authRequest<Invoice>(token, `/invoices/${id}/cancel`, { method: "PATCH" });
+}

@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useHydrated } from "@/lib/use-hydrated";
+import { DashboardNav } from "@/components/dashboard-nav";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -20,5 +21,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <div className="flex flex-1 flex-col">
+      <DashboardNav />
+      {children}
+    </div>
+  );
 }
