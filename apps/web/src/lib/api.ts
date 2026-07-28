@@ -333,8 +333,33 @@ export interface Service {
   createdAt: string;
 }
 
+export interface ServiceInput {
+  name: string;
+  price: number;
+  durationMin: number;
+  type: "SINGLE" | "PACKAGE" | "SUBSCRIPTION";
+}
+
 export function listServices(token: string) {
   return authRequest<Service[]>(token, "/services");
+}
+
+export function createService(token: string, data: ServiceInput) {
+  return authRequest<Service>(token, "/services", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateService(token: string, id: string, data: Partial<ServiceInput>) {
+  return authRequest<Service>(token, `/services/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteService(token: string, id: string) {
+  return authRequest<void>(token, `/services/${id}`, { method: "DELETE" });
 }
 
 export type AppointmentStatus = "BOOKED" | "CANCELLED" | "COMPLETED" | "NO_SHOW";
