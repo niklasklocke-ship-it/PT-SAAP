@@ -84,7 +84,6 @@ curl -X POST http://localhost:3001/public/appointments \
 
 ## Bewusste Vereinfachungen im MVP (nächste Schritte)
 
-- Stripe-Webhook prüft noch keine echte Signatur (`payments/payments.controller.ts`).
 - Rechnungsnummer-Vergabe ist noch nicht race-condition-sicher (siehe Kommentar
   in `invoices/invoices.service.ts`) – für Produktion per DB-Transaktion/Lock lösen.
 - Kein Next.js-Frontend und kein Widget-Bundle enthalten – beide würden auf

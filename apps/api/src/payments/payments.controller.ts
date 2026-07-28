@@ -1,8 +1,18 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Post,
+  RawBodyRequest,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
 import { PaymentsService } from './payments.service';
-import { StripeWebhookDto } from './dto/stripe-webhook.dto';
 
 @Controller('payments')
 export class PaymentsController {
@@ -18,15 +28,17 @@ export class PaymentsController {
   }
 
   // Kein JwtAuthGuard: Stripe ruft diesen Endpunkt direkt auf.
-  // Absicherung läuft stattdessen über die Stripe-Signatur (noch TODO).
+  // Absicherung läuft stattdessen über die Stripe-Signatur im Header
+  // "stripe-signature", geprüft gegen den unveränderten Rohbody.
   @Post('webhook/stripe')
-  handleStripeWebhook(@Body() dto: StripeWebhookDto) {
-    return this.paymentsService.recordFromWebhook({
-      invoiceId: dto.invoiceId,
-      provider: 'stripe',
-      providerTransactionId: dto.providerTransactionId,
-      amount: dto.amount,
-      succeeded: dto.succeeded,
-    });
+  handleStripeWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('stripe-signature') signature: string,
+  ) {
+    if (!req.rawBody || !signature) {
+      throw new BadRequestException('Fehlender Request-Body oder Signatur-Header');
+    }
+    const event = this.paymentsService.verifyWebhookSignature(req.rawBody, signature);
+    return this.paymentsService.handleStripeEvent(event);
   }
 }
