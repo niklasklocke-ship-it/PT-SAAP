@@ -126,7 +126,7 @@ model Invoice {
   customer      Customer      @relation(fields: [customerId], references: [id])
   appointmentId String?       @unique
   appointment   Appointment?  @relation(fields: [appointmentId], references: [id])
-  invoiceNumber String        @unique
+  invoiceNumber String
   amount        Decimal       @db.Decimal(10, 2)
   taxRate       Decimal       @db.Decimal(5, 2) @default(0)
   status        InvoiceStatus @default(OPEN)
@@ -135,6 +135,7 @@ model Invoice {
 
   payments Payment[]
 
+  @@unique([tenantId, invoiceNumber])
   @@index([tenantId])
   @@map("invoices")
 }
