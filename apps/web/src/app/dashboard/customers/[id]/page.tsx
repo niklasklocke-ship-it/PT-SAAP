@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getCustomer, updateCustomer, ApiError, type Customer } from "@/lib/api";
 import { ProgressSection } from "./progress-section";
+import { TrainingPlanSection } from "./training-plan-section";
 
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
@@ -59,7 +60,7 @@ export default function CustomerDetailPage() {
       </p>
 
       <TrainingGoalsSection token={token} customer={customer} onSaved={setCustomer} />
-      <TrainingPlanSection token={token} customer={customer} onSaved={setCustomer} />
+      <TrainingPlanSection token={token} customerId={customer.id} />
       <ProgressSection token={token} customerId={customer.id} />
     </div>
   );
@@ -162,62 +163,6 @@ function TrainingGoalsSection({
           />
         </>
       )}
-
-      {error && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
-
-      <SaveButton isSubmitting={isSubmitting} isSaved={isSaved} />
-    </form>
-  );
-}
-
-function TrainingPlanSection({
-  token,
-  customer,
-  onSaved,
-}: {
-  token: string;
-  customer: Customer;
-  onSaved: (customer: Customer) => void;
-}) {
-  const [plan, setPlan] = useState(customer.trainingPlan ?? "");
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setIsSubmitting(true);
-    setIsSaved(false);
-    try {
-      const updated = await updateCustomer(token, customer.id, {
-        trainingPlan: plan || undefined,
-      });
-      onSaved(updated);
-      setIsSaved(true);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Speichern fehlgeschlagen");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="mb-6 rounded-lg border border-black/10 bg-white p-6 dark:border-white/10 dark:bg-zinc-950"
-    >
-      <h2 className="mb-4 text-lg font-semibold text-black dark:text-zinc-50">
-        Trainingsplan
-      </h2>
-
-      <textarea
-        rows={6}
-        placeholder="z.B. Mo: Ganzkörper, Mi: Cardio, Fr: Oberkörper..."
-        value={plan}
-        onChange={(e) => setPlan(e.target.value)}
-        className="mb-3 w-full rounded border border-black/15 bg-transparent px-3 py-2 text-black dark:border-white/15 dark:text-zinc-50"
-      />
 
       {error && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 

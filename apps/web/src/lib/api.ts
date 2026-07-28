@@ -154,3 +154,132 @@ export function createExerciseLog(token: string, data: ExerciseLogInput) {
 export function deleteExerciseLog(token: string, id: string) {
   return authRequest<void>(token, `/exercise-logs/${id}`, { method: "DELETE" });
 }
+
+export interface TrainingExercise {
+  id: string;
+  sectionId: string;
+  name: string;
+  sets: number | null;
+  reps: number | null;
+  weight: string | null;
+  restSeconds: number | null;
+  notes: string | null;
+  order: number;
+}
+
+export interface TrainingSection {
+  id: string;
+  dayId: string;
+  category: string;
+  order: number;
+  exercises: TrainingExercise[];
+}
+
+export interface TrainingDay {
+  id: string;
+  planId: string;
+  name: string;
+  order: number;
+  sections: TrainingSection[];
+}
+
+export interface TrainingPlan {
+  id: string;
+  customerId: string;
+  createdAt: string;
+  updatedAt: string;
+  days: TrainingDay[];
+}
+
+export interface TrainingExerciseInput {
+  sectionId: string;
+  name: string;
+  sets?: number;
+  reps?: number;
+  weight?: number;
+  restSeconds?: number;
+  notes?: string;
+}
+
+export function getOrCreateTrainingPlan(token: string, customerId: string) {
+  return authRequest<TrainingPlan>(token, `/training-plans/customer/${customerId}`);
+}
+
+export function addTrainingDay(token: string, planId: string, name: string) {
+  return authRequest<TrainingDay>(token, "/training-plans/days", {
+    method: "POST",
+    body: JSON.stringify({ planId, name }),
+  });
+}
+
+export function renameTrainingDay(token: string, id: string, name: string) {
+  return authRequest<TrainingDay>(token, `/training-plans/days/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function removeTrainingDay(token: string, id: string) {
+  return authRequest<void>(token, `/training-plans/days/${id}`, { method: "DELETE" });
+}
+
+export function reorderTrainingDays(token: string, planId: string, ids: string[]) {
+  return authRequest<void>(token, `/training-plans/days/${planId}/reorder`, {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  });
+}
+
+export function addTrainingSection(token: string, dayId: string, category: string) {
+  return authRequest<TrainingSection>(token, "/training-plans/sections", {
+    method: "POST",
+    body: JSON.stringify({ dayId, category }),
+  });
+}
+
+export function updateTrainingSection(token: string, id: string, category: string) {
+  return authRequest<TrainingSection>(token, `/training-plans/sections/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ category }),
+  });
+}
+
+export function removeTrainingSection(token: string, id: string) {
+  return authRequest<void>(token, `/training-plans/sections/${id}`, { method: "DELETE" });
+}
+
+export function reorderTrainingSections(token: string, dayId: string, ids: string[]) {
+  return authRequest<void>(token, `/training-plans/sections/${dayId}/reorder`, {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  });
+}
+
+export function addTrainingExercise(token: string, data: TrainingExerciseInput) {
+  return authRequest<TrainingExercise>(token, "/training-plans/exercises", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateTrainingExercise(
+  token: string,
+  id: string,
+  data: Partial<TrainingExerciseInput>,
+) {
+  return authRequest<TrainingExercise>(token, `/training-plans/exercises/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function removeTrainingExercise(token: string, id: string) {
+  return authRequest<void>(token, `/training-plans/exercises/${id}`, { method: "DELETE" });
+}
+
+export function reorderTrainingExercises(token: string, sectionId: string, ids: string[]) {
+  return authRequest<void>(token, `/training-plans/exercises/${sectionId}/reorder`, {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  });
+}

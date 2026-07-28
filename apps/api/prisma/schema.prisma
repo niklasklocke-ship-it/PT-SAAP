@@ -50,6 +50,7 @@ model Customer {
   packages     CustomerPackage[]
   invoices     Invoice[]
   exerciseLogs ExerciseLog[]
+  trainingPlanTree TrainingPlan?
 
   @@index([tenantId])
   @@map("customers")
@@ -76,6 +77,65 @@ model ExerciseLog {
 
   @@index([customerId, exerciseName])
   @@map("exercise_logs")
+}
+
+// Strukturierter Trainingsplan (Baumstruktur, ersetzt den alten Freitext-
+// Ansatz): ein Plan pro Kunde, mehrere Trainingstage, jeder Tag mehrere
+// Abschnitte (Kategorie z.B. Push/Pull/Beine), jeder Abschnitt mehrere
+// Übungen mit Sätzen/Wdh/Gewicht/Pause/Notizen. order jeweils für
+// Drag-and-Drop-Reihenfolge innerhalb der Elternebene.
+model TrainingPlan {
+  id         String   @id @default(uuid())
+  customerId String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  days TrainingDay[]
+
+  @@map("training_plans")
+}
+
+model TrainingDay {
+  id        String       @id @default(uuid())
+  planId    String
+  plan      TrainingPlan @relation(fields: [planId], references: [id])
+  name      String
+  order     Int
+
+  sections TrainingSection[]
+
+  @@index([planId])
+  @@map("training_days")
+}
+
+model TrainingSection {
+  id       String      @id @default(uuid())
+  dayId    String
+  day      TrainingDay @relation(fields: [dayId], references: [id])
+  category String
+  order    Int
+
+  exercises TrainingExercise[]
+
+  @@index([dayId])
+  @@map("training_sections")
+}
+
+model TrainingExercise {
+  id          String          @id @default(uuid())
+  sectionId   String
+  section     TrainingSection @relation(fields: [sectionId], references: [id])
+  name        String
+  sets        Int?
+  reps        Int?
+  weight      Decimal?        @db.Decimal(6, 2)
+  restSeconds Int?
+  notes       String?
+  order       Int
+
+  @@index([sectionId])
+  @@map("training_exercises")
 }
 
 enum ServiceType {
