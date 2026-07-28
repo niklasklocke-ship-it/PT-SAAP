@@ -21,8 +21,11 @@ apps/
       invoices/           Rechnungen mit fortlaufender Rechnungsnummer
       payments/           Zahlungen + Stripe-Webhook-Stub
       public/             Öffentliche Endpunkte für Widget/App (API-Key statt Login)
+      exercise-logs/      Fortschritts-/Gewichtstracking pro Übung und Kunde
+      training-plans/     Strukturierter Trainingsplan (Tage/Abschnitte/Übungen)
+      google-calendar/    OAuth-Anbindung + Sync von Terminen zu Google Calendar
       common/             Guards (JWT, API-Key) und Decorators
-  web/                    Next.js-Frontend (Trainer-Dashboard) - aktuell nur Grundgerüst
+  web/                    Next.js-Frontend (Trainer-Dashboard)
 docker-compose.yml        Lokale Postgres- und Redis-Instanz
 ```
 
@@ -85,7 +88,9 @@ curl -X POST http://localhost:3001/public/appointments \
 
 ## Frontend (apps/web)
 
-Next.js-Grundgerüst für das Trainer-Dashboard, noch ohne Screens/Auth-Flow.
+Next.js-Trainer-Dashboard: Login/Registrierung, Kundenliste inkl.
+Trainingsziele/Trainingsplan (Accordion mit Drag&Drop)/Fortschritts-Tracking,
+Kalender (Monatsansicht) und Rechnungen.
 
 ```
 cd apps/web
@@ -98,7 +103,33 @@ Läuft danach auf `http://localhost:3000` und erwartet die API unter der in
 `NEXT_PUBLIC_API_URL` konfigurierten Adresse (Standard: `http://localhost:3001`).
 Kein Widget-Bundle enthalten – das würde auf `/public/*` aufsetzen.
 
+## Google-Calendar-Sync einrichten
+
+Termine können optional mit dem Google Calendar des Trainers synchronisiert
+werden (einseitig automatisch bei Anlegen/Ändern/Löschen eines Termins, plus
+ein manueller "Jetzt synchronisieren"-Button für Änderungen, die der Trainer
+direkt in Google vorgenommen hat).
+
+1. In der [Google Cloud Console](https://console.cloud.google.com/) ein
+   Projekt anlegen und die **Google Calendar API** aktivieren.
+2. Unter "APIs & Services" → "OAuth consent screen" einen Consent-Screen
+   konfigurieren (App-Name, Testnutzer für den Entwicklungsmodus reichen).
+3. Unter "Credentials" eine **OAuth-Client-ID** vom Typ "Web application"
+   erzeugen. Als "Authorized redirect URI"
+   `http://localhost:3001/google-calendar/callback` eintragen.
+4. Client-ID und Client-Secret in `apps/api/.env` eintragen
+   (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
+5. Im Trainer-Dashboard unter "Kalender" auf "Google Calendar verbinden"
+   klicken.
+
+Ohne diese Variablen bleibt der Button sichtbar, aber die Verbindung schlägt
+fehl (Google lehnt die Anfrage mangels gültiger `client_id`/`redirect_uri` ab).
+
 ## Bewusste Vereinfachungen im MVP (nächste Schritte)
 
-- Kalender-Sync (Google/Outlook), E-Mail/SMS-Erinnerungen und DATEV-Export
-  sind noch nicht implementiert.
+- Google-Calendar-Sync deckt nur Google ab (kein Outlook/Microsoft 365) und
+  hat keinen automatischen Hintergrundabgleich für Änderungen aus Google -
+  das bräuchte entweder Webhooks (öffentlich erreichbare HTTPS-Callback-URL)
+  oder einen Polling-Scheduler. Neu direkt in Google angelegte Termine werden
+  nicht automatisch in PT-SaaS übernommen (fehlende Kunde/Leistung-Zuordnung).
+- E-Mail/SMS-Erinnerungen und DATEV-Export sind noch nicht implementiert.

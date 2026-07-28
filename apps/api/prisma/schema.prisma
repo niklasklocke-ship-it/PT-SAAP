@@ -23,8 +23,29 @@ model Tenant {
   services     Service[]
   appointments Appointment[]
   invoices     Invoice[]
+  googleCalendarConnection GoogleCalendarConnection?
 
   @@map("tenants")
+}
+
+// OAuth-Verbindung eines Trainers zu seinem Google-Kalender. Ein Tenant hat
+// höchstens eine aktive Verbindung. accessToken läuft ab (tokenExpiresAt) und
+// wird über refreshToken erneuert - Tokens hier bewusst unverschlüsselt wie
+// der Rest des MVP (siehe README "Bewusste Vereinfachungen").
+model GoogleCalendarConnection {
+  id               String   @id @default(uuid())
+  tenantId         String   @unique
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  accessToken      String
+  refreshToken     String
+  tokenExpiresAt   DateTime
+  googleCalendarId String   @default("primary")
+  // Für inkrementelle Synchronisation via Google Calendar API (events.list
+  // mit syncToken statt jedes Mal alles neu abzugleichen).
+  syncToken        String?
+  connectedAt      DateTime @default(now())
+
+  @@map("google_calendar_connections")
 }
 
 // Kunde eines Trainers (Trainingsklient)
@@ -196,6 +217,10 @@ model Appointment {
   endTime    DateTime
   status     AppointmentStatus @default(BOOKED)
   createdAt  DateTime          @default(now())
+
+  // Verknüpfung zum Google-Calendar-Event, falls der Trainer verbunden ist -
+  // ermöglicht Update/Löschen des passenden Events statt Duplikate anzulegen.
+  googleEventId String? @unique
 
   invoice Invoice?
 

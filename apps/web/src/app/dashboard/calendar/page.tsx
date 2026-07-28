@@ -15,6 +15,7 @@ import {
   type Customer,
   type Service,
 } from "@/lib/api";
+import { GoogleCalendarConnect } from "./google-calendar-connect";
 
 const STATUS_LABEL: Record<AppointmentStatus, string> = {
   BOOKED: "Gebucht",
@@ -170,6 +171,8 @@ export default function CalendarPage() {
           }}
         />
       )}
+
+      <GoogleCalendarConnect token={token} onSynced={refresh} />
 
       {error && <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
 

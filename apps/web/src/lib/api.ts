@@ -384,3 +384,28 @@ export function updateAppointmentStatus(token: string, id: string, status: Appoi
 export function deleteAppointment(token: string, id: string) {
   return authRequest<void>(token, `/appointments/${id}`, { method: "DELETE" });
 }
+
+export interface GoogleCalendarStatus {
+  connected: boolean;
+  connectedAt: string | null;
+}
+
+export function getGoogleCalendarStatus(token: string) {
+  return authRequest<GoogleCalendarStatus>(token, "/google-calendar/status");
+}
+
+export function getGoogleCalendarConnectUrl(token: string) {
+  return authRequest<{ url: string }>(token, "/google-calendar/connect");
+}
+
+export function disconnectGoogleCalendar(token: string) {
+  return authRequest<{ connected: boolean }>(token, "/google-calendar/disconnect", {
+    method: "POST",
+  });
+}
+
+export function syncGoogleCalendar(token: string) {
+  return authRequest<{ updated: number; cancelled: number }>(token, "/google-calendar/sync", {
+    method: "POST",
+  });
+}

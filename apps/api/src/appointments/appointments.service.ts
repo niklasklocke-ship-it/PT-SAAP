@@ -1,15 +1,22 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 
 @Injectable()
 export class AppointmentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(AppointmentsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly googleCalendarService: GoogleCalendarService,
+  ) {}
 
   // Prüft, ob sich der neue Termin mit einem bestehenden, aktiven
   // Termin desselben Trainers überschneidet.
@@ -58,7 +65,7 @@ export class AppointmentsService {
     await this.assertBelongsToTenant(tenantId, dto.customerId, dto.serviceId);
     await this.assertNoOverlap(tenantId, startTime, endTime);
 
-    return this.prisma.appointment.create({
+    const appointment = await this.prisma.appointment.create({
       data: {
         tenantId,
         customerId: dto.customerId,
@@ -68,6 +75,32 @@ export class AppointmentsService {
       },
       include: { customer: true, service: true },
     });
+
+    // Best-effort: falls Google Calendar verbunden ist, Event dort
+    // anlegen. Ein Fehler hier darf die Terminbuchung nicht blockieren.
+    try {
+      const googleEventId = await this.googleCalendarService.createEventForAppointment(
+        tenantId,
+        {
+          id: appointment.id,
+          startTime: appointment.startTime,
+          endTime: appointment.endTime,
+          customerName: appointment.customer.name,
+          serviceName: appointment.service.name,
+        },
+      );
+      if (googleEventId) {
+        await this.prisma.appointment.update({
+          where: { id: appointment.id },
+          data: { googleEventId },
+        });
+        appointment.googleEventId = googleEventId;
+      }
+    } catch (err) {
+      this.logger.warn(`Google-Calendar-Sync (create) fehlgeschlagen: ${err}`);
+    }
+
+    return appointment;
   }
 
   // Optionaler Zeitraumfilter fürs Kalender-Widget (?from=...&to=...)
@@ -113,7 +146,7 @@ export class AppointmentsService {
       await this.assertNoOverlap(tenantId, startTime, endTime, id);
     }
 
-    return this.prisma.appointment.update({
+    const updated = await this.prisma.appointment.update({
       where: { id },
       data: {
         startTime,
@@ -121,10 +154,41 @@ export class AppointmentsService {
         status: dto.status ?? existing.status,
       },
     });
+
+    if (existing.googleEventId) {
+      try {
+        await this.googleCalendarService.updateEventForAppointment(
+          tenantId,
+          existing.googleEventId,
+          {
+            startTime: updated.startTime,
+            endTime: updated.endTime,
+            customerName: existing.customer.name,
+            serviceName: existing.service.name,
+          },
+        );
+      } catch (err) {
+        this.logger.warn(`Google-Calendar-Sync (update) fehlgeschlagen: ${err}`);
+      }
+    }
+
+    return updated;
   }
 
   async remove(tenantId: string, id: string) {
-    await this.findOne(tenantId, id);
+    const existing = await this.findOne(tenantId, id);
+
+    if (existing.googleEventId) {
+      try {
+        await this.googleCalendarService.deleteEventForAppointment(
+          tenantId,
+          existing.googleEventId,
+        );
+      } catch (err) {
+        this.logger.warn(`Google-Calendar-Sync (delete) fehlgeschlagen: ${err}`);
+      }
+    }
+
     return this.prisma.appointment.delete({ where: { id } });
   }
 }
