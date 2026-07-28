@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 
 const NAV_ITEMS = [
   { href: "/dashboard/customers", label: "Kunden" },
+  { href: "/dashboard/calendar", label: "Kalender" },
   { href: "/dashboard/invoices", label: "Rechnungen" },
 ];
 

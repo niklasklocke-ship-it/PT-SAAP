@@ -322,3 +322,65 @@ export function createInvoice(token: string, data: InvoiceInput) {
 export function cancelInvoice(token: string, id: string) {
   return authRequest<Invoice>(token, `/invoices/${id}/cancel`, { method: "PATCH" });
 }
+
+export interface Service {
+  id: string;
+  tenantId: string;
+  name: string;
+  price: string;
+  durationMin: number;
+  type: "SINGLE" | "PACKAGE" | "SUBSCRIPTION";
+  createdAt: string;
+}
+
+export function listServices(token: string) {
+  return authRequest<Service[]>(token, "/services");
+}
+
+export type AppointmentStatus = "BOOKED" | "CANCELLED" | "COMPLETED" | "NO_SHOW";
+
+export interface Appointment {
+  id: string;
+  tenantId: string;
+  customerId: string;
+  serviceId: string;
+  startTime: string;
+  endTime: string;
+  status: AppointmentStatus;
+  createdAt: string;
+  customer: Customer;
+  service: Service;
+}
+
+export interface AppointmentInput {
+  customerId: string;
+  serviceId: string;
+  startTime: string;
+  endTime: string;
+}
+
+export function listAppointments(token: string, from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const query = params.toString();
+  return authRequest<Appointment[]>(token, `/appointments${query ? `?${query}` : ""}`);
+}
+
+export function createAppointment(token: string, data: AppointmentInput) {
+  return authRequest<Appointment>(token, "/appointments", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateAppointmentStatus(token: string, id: string, status: AppointmentStatus) {
+  return authRequest<Appointment>(token, `/appointments/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function deleteAppointment(token: string, id: string) {
+  return authRequest<void>(token, `/appointments/${id}`, { method: "DELETE" });
+}
