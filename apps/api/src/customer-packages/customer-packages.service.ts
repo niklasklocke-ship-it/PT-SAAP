@@ -7,13 +7,20 @@ export class CustomerPackagesService {
   constructor(private readonly prisma: PrismaService) {}
 
   // Pakete/Abos gehören zu Kunden, die wiederum zu einem Tenant gehören -
-  // daher hier über die Kunden-Relation auf tenantId prüfen.
+  // daher hier über die Kunden-Relation auf tenantId prüfen. Zusätzlich
+  // muss auch die referenzierte Leistung (serviceId) zum selben Tenant
+  // gehören, sonst könnte ein Trainer ein Paket auf eine fremde Leistung
+  // ausstellen.
   async create(tenantId: string, dto: CreateCustomerPackageDto) {
-    const customer = await this.prisma.customer.findFirst({
-      where: { id: dto.customerId, tenantId },
-    });
+    const [customer, service] = await Promise.all([
+      this.prisma.customer.findFirst({ where: { id: dto.customerId, tenantId } }),
+      this.prisma.service.findFirst({ where: { id: dto.serviceId, tenantId } }),
+    ]);
     if (!customer) {
       throw new NotFoundException('Kunde nicht gefunden');
+    }
+    if (!service) {
+      throw new NotFoundException('Leistung nicht gefunden');
     }
 
     return this.prisma.customerPackage.create({

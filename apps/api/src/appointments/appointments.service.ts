@@ -33,12 +33,29 @@ export class AppointmentsService {
     }
   }
 
+  // Verhindert, dass ein Trainer (oder das Public-Widget über dessen
+  // API-Key) einen Termin mit customerId/serviceId eines *anderen*
+  // Tenants anlegt - beide IDs müssen zum aktuellen Tenant gehören.
+  private async assertBelongsToTenant(tenantId: string, customerId: string, serviceId: string) {
+    const [customer, service] = await Promise.all([
+      this.prisma.customer.findFirst({ where: { id: customerId, tenantId } }),
+      this.prisma.service.findFirst({ where: { id: serviceId, tenantId } }),
+    ]);
+    if (!customer) {
+      throw new NotFoundException('Kunde nicht gefunden');
+    }
+    if (!service) {
+      throw new NotFoundException('Leistung nicht gefunden');
+    }
+  }
+
   async create(tenantId: string, dto: CreateAppointmentDto) {
     const startTime = new Date(dto.startTime);
     const endTime = new Date(dto.endTime);
     if (endTime <= startTime) {
       throw new BadRequestException('endTime muss nach startTime liegen');
     }
+    await this.assertBelongsToTenant(tenantId, dto.customerId, dto.serviceId);
     await this.assertNoOverlap(tenantId, startTime, endTime);
 
     return this.prisma.appointment.create({

@@ -41,6 +41,15 @@ export class InvoicesService {
       throw new NotFoundException('Kunde nicht gefunden');
     }
 
+    if (dto.appointmentId) {
+      const appointment = await this.prisma.appointment.findFirst({
+        where: { id: dto.appointmentId, tenantId },
+      });
+      if (!appointment) {
+        throw new NotFoundException('Termin nicht gefunden');
+      }
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const invoiceNumber = await this.generateInvoiceNumber(tx, tenantId);
 
