@@ -15,6 +15,10 @@ model Tenant {
   passwordHash     String
   taxId            String?
   subscriptionPlan String   @default("trial")
+  // Reines Text-Label fürs Trainer-Profil (z.B. "Kreditkarte endet auf
+  // 4242") - keine echte Zahlungsabwicklung/Stripe-Kunde dahinter, siehe
+  // README.
+  paymentMethodLabel String?
   publicApiKey     String   @unique @default(cuid())
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

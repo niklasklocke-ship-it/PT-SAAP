@@ -468,3 +468,30 @@ export function consumeCustomerPackageSession(token: string, id: string) {
     method: "POST",
   });
 }
+
+export interface TenantProfile {
+  id: string;
+  name: string;
+  email: string;
+  taxId: string | null;
+  subscriptionPlan: string;
+  paymentMethodLabel: string | null;
+  publicApiKey: string;
+}
+
+export interface UpdateProfileInput {
+  name?: string;
+  taxId?: string;
+  paymentMethodLabel?: string;
+}
+
+export function getProfile(token: string) {
+  return authRequest<TenantProfile>(token, "/auth/me");
+}
+
+export function updateProfile(token: string, data: UpdateProfileInput) {
+  return authRequest<TenantProfile>(token, "/auth/me", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}

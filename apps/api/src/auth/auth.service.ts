@@ -1,9 +1,15 @@
-import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class AuthService {
@@ -47,6 +53,46 @@ export class AuthService {
     }
 
     return this.buildAuthResponse(tenant);
+  }
+
+  async getProfile(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
+    if (!tenant) {
+      throw new NotFoundException('Trainer nicht gefunden');
+    }
+    return this.toProfile(tenant);
+  }
+
+  async updateProfile(tenantId: string, dto: UpdateProfileDto) {
+    const tenant = await this.prisma.tenant.update({
+      where: { id: tenantId },
+      data: {
+        name: dto.name,
+        taxId: dto.taxId,
+        paymentMethodLabel: dto.paymentMethodLabel,
+      },
+    });
+    return this.toProfile(tenant);
+  }
+
+  private toProfile(tenant: {
+    id: string;
+    name: string;
+    email: string;
+    taxId: string | null;
+    subscriptionPlan: string;
+    paymentMethodLabel: string | null;
+    publicApiKey: string;
+  }) {
+    return {
+      id: tenant.id,
+      name: tenant.name,
+      email: tenant.email,
+      taxId: tenant.taxId,
+      subscriptionPlan: tenant.subscriptionPlan,
+      paymentMethodLabel: tenant.paymentMethodLabel,
+      publicApiKey: tenant.publicApiKey,
+    };
   }
 
   private buildAuthResponse(tenant: { id: string; name: string; email: string; publicApiKey: string }) {

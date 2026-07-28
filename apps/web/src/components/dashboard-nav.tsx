@@ -46,7 +46,16 @@ export function DashboardNav() {
           })}
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-zinc-600 dark:text-zinc-400">{tenant?.name}</span>
+          <Link
+            href="/dashboard/profile"
+            className={
+              pathname?.startsWith("/dashboard/profile")
+                ? "text-sm font-medium text-black underline dark:text-zinc-50"
+                : "text-sm text-zinc-600 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
+            }
+          >
+            {tenant?.name}
+          </Link>
           <button
             onClick={handleLogout}
             className="text-sm font-medium text-zinc-600 underline hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
