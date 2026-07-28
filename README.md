@@ -22,6 +22,7 @@ apps/
       payments/           Zahlungen + Stripe-Webhook-Stub
       public/             Öffentliche Endpunkte für Widget/App (API-Key statt Login)
       common/             Guards (JWT, API-Key) und Decorators
+  web/                    Next.js-Frontend (Trainer-Dashboard) - aktuell nur Grundgerüst
 docker-compose.yml        Lokale Postgres- und Redis-Instanz
 ```
 
@@ -82,10 +83,22 @@ curl -X POST http://localhost:3001/public/appointments \
   -d '{"customerName":"Anna Kunde","customerEmail":"anna@example.com","serviceId":"<serviceId>","startTime":"2026-08-01T09:00:00.000Z","endTime":"2026-08-01T10:00:00.000Z"}'
 ```
 
+## Frontend (apps/web)
+
+Next.js-Grundgerüst für das Trainer-Dashboard, noch ohne Screens/Auth-Flow.
+
+```
+cd apps/web
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Läuft danach auf `http://localhost:3000` und erwartet die API unter der in
+`NEXT_PUBLIC_API_URL` konfigurierten Adresse (Standard: `http://localhost:3001`).
+Kein Widget-Bundle enthalten – das würde auf `/public/*` aufsetzen.
+
 ## Bewusste Vereinfachungen im MVP (nächste Schritte)
 
-- Kein Next.js-Frontend und kein Widget-Bundle enthalten – beide würden auf
-  `/public/*` (Widget) bzw. `/auth`, `/customers`, `/appointments` etc.
-  (Trainer-Dashboard) aufsetzen.
 - Kalender-Sync (Google/Outlook), E-Mail/SMS-Erinnerungen und DATEV-Export
   sind noch nicht implementiert.
