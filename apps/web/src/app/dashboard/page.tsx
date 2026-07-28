@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 
@@ -18,8 +19,14 @@ export default function DashboardPage() {
         Angemeldet als {tenant?.name}
       </h1>
       <p className="max-w-md text-zinc-600 dark:text-zinc-400">
-        Kundenliste, Termine und Rechnungen folgen als Nächstes.
+        Termine und Rechnungen folgen als Nächstes.
       </p>
+      <Link
+        href="/dashboard/customers"
+        className="rounded bg-black px-5 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
+      >
+        Zu den Kunden
+      </Link>
       <button
         onClick={handleLogout}
         className="rounded border border-black/15 px-4 py-2 text-sm font-medium text-black dark:border-white/15 dark:text-zinc-50"

@@ -15,4 +15,16 @@ export class CreateCustomerDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  trainingGoalsSummary?: string;
+
+  @IsOptional()
+  @IsString()
+  trainingGoalsDetail?: string;
+
+  @IsOptional()
+  @IsString()
+  trainingPlan?: string;
 }

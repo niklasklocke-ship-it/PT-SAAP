@@ -38,6 +38,13 @@ model Customer {
   notes     String?
   createdAt DateTime @default(now())
 
+  // Trainingsziele: kurze Übersicht (z.B. in der Kundenliste) + optionales
+  // Detailfeld für eine ausführlichere Beschreibung. Trainingsplan bewusst
+  // als einfaches Freitextfeld (kein eigenes Übungs-Datenmodell im MVP).
+  trainingGoalsSummary String?
+  trainingGoalsDetail  String?
+  trainingPlan         String?
+
   appointments Appointment[]
   packages     CustomerPackage[]
   invoices     Invoice[]

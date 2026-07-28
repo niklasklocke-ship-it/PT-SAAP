@@ -55,3 +55,62 @@ export function login(data: { email: string; password: string }) {
     body: JSON.stringify(data),
   });
 }
+
+function authRequest<T>(token: string, path: string, options: RequestInit = {}): Promise<T> {
+  return request<T>(path, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+}
+
+export interface Customer {
+  id: string;
+  tenantId: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  trainingGoalsSummary: string | null;
+  trainingGoalsDetail: string | null;
+  trainingPlan: string | null;
+  createdAt: string;
+}
+
+export interface CustomerInput {
+  name: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  trainingGoalsSummary?: string;
+  trainingGoalsDetail?: string;
+  trainingPlan?: string;
+}
+
+export function listCustomers(token: string) {
+  return authRequest<Customer[]>(token, "/customers");
+}
+
+export function getCustomer(token: string, id: string) {
+  return authRequest<Customer>(token, `/customers/${id}`);
+}
+
+export function createCustomer(token: string, data: CustomerInput) {
+  return authRequest<Customer>(token, "/customers", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateCustomer(token: string, id: string, data: Partial<CustomerInput>) {
+  return authRequest<Customer>(token, `/customers/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteCustomer(token: string, id: string) {
+  return authRequest<void>(token, `/customers/${id}`, { method: "DELETE" });
+}
