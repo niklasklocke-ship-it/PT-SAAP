@@ -84,8 +84,6 @@ curl -X POST http://localhost:3001/public/appointments \
 
 ## Bewusste Vereinfachungen im MVP (nächste Schritte)
 
-- Rechnungsnummer-Vergabe ist noch nicht race-condition-sicher (siehe Kommentar
-  in `invoices/invoices.service.ts`) – für Produktion per DB-Transaktion/Lock lösen.
 - Kein Next.js-Frontend und kein Widget-Bundle enthalten – beide würden auf
   `/public/*` (Widget) bzw. `/auth`, `/customers`, `/appointments` etc.
   (Trainer-Dashboard) aufsetzen.

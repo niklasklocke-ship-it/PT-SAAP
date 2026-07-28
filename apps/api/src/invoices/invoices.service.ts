@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 
@@ -7,12 +8,19 @@ export class InvoicesService {
   constructor(private readonly prisma: PrismaService) {}
 
   // Fortlaufende Rechnungsnummer pro Trainer und Jahr, z.B. "2026-0007".
-  // Für GoBD muss diese lückenlos sein - in Produktion sollte das per
-  // DB-Transaktion/Advisory-Lock abgesichert werden, um Race Conditions
-  // bei parallelen Requests auszuschließen.
-  private async generateInvoiceNumber(tenantId: string): Promise<string> {
+  // Für GoBD muss diese lückenlos sein. Die Zählung + das Anlegen der
+  // Rechnung laufen daher in derselben DB-Transaktion, serialisiert per
+  // Postgres Advisory-Lock (pro Tenant + Jahr) - parallele Requests
+  // desselben Trainers warten hier aufeinander statt gleichzeitig
+  // dieselbe Nummer zu berechnen.
+  private async generateInvoiceNumber(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+  ): Promise<string> {
     const year = new Date().getFullYear();
-    const count = await this.prisma.invoice.count({
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`invoice-number:${tenantId}:${year}`}, 0))`;
+
+    const count = await tx.invoice.count({
       where: {
         tenantId,
         issuedAt: {
@@ -33,18 +41,20 @@ export class InvoicesService {
       throw new NotFoundException('Kunde nicht gefunden');
     }
 
-    const invoiceNumber = await this.generateInvoiceNumber(tenantId);
+    return this.prisma.$transaction(async (tx) => {
+      const invoiceNumber = await this.generateInvoiceNumber(tx, tenantId);
 
-    return this.prisma.invoice.create({
-      data: {
-        tenantId,
-        customerId: dto.customerId,
-        appointmentId: dto.appointmentId,
-        invoiceNumber,
-        amount: dto.amount,
-        taxRate: dto.taxRate ?? 0,
-        dueAt: dto.dueAt ? new Date(dto.dueAt) : undefined,
-      },
+      return tx.invoice.create({
+        data: {
+          tenantId,
+          customerId: dto.customerId,
+          appointmentId: dto.appointmentId,
+          invoiceNumber,
+          amount: dto.amount,
+          taxRate: dto.taxRate ?? 0,
+          dueAt: dto.dueAt ? new Date(dto.dueAt) : undefined,
+        },
+      });
     });
   }
 
