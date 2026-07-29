@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 
 const NAV_ITEMS = [
@@ -11,12 +12,44 @@ const NAV_ITEMS = [
   { href: "/dashboard/invoices", label: "Rechnungen" },
 ];
 
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
+}
+
 export function DashboardNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { tenant, logout } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    function handlePointerDown(e: PointerEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setIsMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMenuOpen]);
 
   function handleLogout() {
+    setIsMenuOpen(false);
     logout();
     router.push("/login");
   }
@@ -45,23 +78,62 @@ export function DashboardNav() {
             );
           })}
         </div>
-        <div className="flex items-center gap-4">
-          <Link
-            href="/dashboard/profile"
+        <div ref={menuRef} className="relative">
+          <button
+            onClick={() => setIsMenuOpen((open) => !open)}
+            aria-expanded={isMenuOpen}
+            aria-haspopup="menu"
             className={
-              pathname?.startsWith("/dashboard/profile")
-                ? "text-sm font-medium text-black underline dark:text-zinc-50"
-                : "text-sm text-zinc-600 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
+              "flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-sm font-medium transition-colors " +
+              (isMenuOpen || pathname?.startsWith("/dashboard/profile")
+                ? "bg-black/5 text-black dark:bg-white/10 dark:text-zinc-50"
+                : "text-zinc-600 hover:bg-black/5 hover:text-black dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-zinc-50")
             }
           >
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-xs font-semibold text-white dark:bg-white dark:text-black">
+              {initials(tenant?.name ?? "")}
+            </span>
             {tenant?.name}
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="text-sm font-medium text-zinc-600 underline hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
-          >
-            Abmelden
+            <svg
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className={"h-4 w-4 transition-transform " + (isMenuOpen ? "rotate-180" : "")}
+            >
+              <path
+                fillRule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                clipRule="evenodd"
+              />
+            </svg>
           </button>
+
+          {isMenuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 top-full z-10 mt-2 w-56 rounded-lg border border-black/10 bg-white py-1 shadow-lg dark:border-white/10 dark:bg-zinc-950"
+            >
+              <div className="border-b border-black/10 px-4 py-3 dark:border-white/10">
+                <p className="truncate text-sm font-medium text-black dark:text-zinc-50">
+                  {tenant?.name}
+                </p>
+                <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">{tenant?.email}</p>
+              </div>
+              <Link
+                href="/dashboard/profile"
+                role="menuitem"
+                className="block px-4 py-2 text-sm text-zinc-700 hover:bg-black/5 dark:text-zinc-300 dark:hover:bg-white/10"
+              >
+                Profil
+              </Link>
+              <button
+                role="menuitem"
+                onClick={handleLogout}
+                className="block w-full px-4 py-2 text-left text-sm text-zinc-700 hover:bg-black/5 dark:text-zinc-300 dark:hover:bg-white/10"
+              >
+                Abmelden
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </nav>
