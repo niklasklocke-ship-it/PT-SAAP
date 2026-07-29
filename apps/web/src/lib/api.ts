@@ -57,6 +57,20 @@ export function login(data: { email: string; password: string }) {
   });
 }
 
+export function forgotPassword(email: string) {
+  return request<{ message: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function resetPassword(token: string, newPassword: string) {
+  return request<{ message: string }>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, newPassword }),
+  });
+}
+
 function authRequest<T>(token: string, path: string, options: RequestInit = {}): Promise<T> {
   return request<T>(path, {
     ...options,

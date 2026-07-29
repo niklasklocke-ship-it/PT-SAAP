@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   ConflictException,
   NotFoundException,
@@ -6,16 +7,23 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   // Ein Trainer registriert sich = ein neuer Tenant wird angelegt.
@@ -53,6 +61,55 @@ export class AuthService {
     }
 
     return this.buildAuthResponse(tenant);
+  }
+
+  // Gibt bewusst immer die gleiche Antwort zurück, unabhängig davon, ob die
+  // E-Mail existiert - verhindert, dass sich das Endpoint zum Enumerieren
+  // registrierter E-Mail-Adressen missbrauchen lässt.
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
+    const tenant = await this.prisma.tenant.findUnique({ where: { email: dto.email } });
+    if (tenant) {
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = this.hashToken(rawToken);
+      await this.prisma.tenant.update({
+        where: { id: tenant.id },
+        data: {
+          passwordResetTokenHash: tokenHash,
+          passwordResetExpiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+        },
+      });
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}`;
+      await this.mailService.sendPasswordResetEmail(tenant.email, resetUrl);
+    }
+    return {
+      message: 'Falls ein Konto mit dieser E-Mail existiert, wurde eine E-Mail mit einem Link zum Zurücksetzen versendet.',
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
+    const tokenHash = this.hashToken(dto.token);
+    const tenant = await this.prisma.tenant.findFirst({
+      where: { passwordResetTokenHash: tokenHash },
+    });
+    if (!tenant || !tenant.passwordResetExpiresAt || tenant.passwordResetExpiresAt < new Date()) {
+      throw new BadRequestException('Der Link ist ungültig oder abgelaufen');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.tenant.update({
+      where: { id: tenant.id },
+      data: {
+        passwordHash,
+        passwordResetTokenHash: null,
+        passwordResetExpiresAt: null,
+      },
+    });
+    return { message: 'Passwort wurde erfolgreich zurückgesetzt' };
+  }
+
+  private hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
   }
 
   async getProfile(tenantId: string) {
