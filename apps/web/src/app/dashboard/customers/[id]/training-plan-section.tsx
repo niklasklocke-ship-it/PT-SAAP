@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   getOrCreateTrainingPlan,
   addTrainingDay,
@@ -49,14 +49,22 @@ function InlineEditableText({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const settledRef = useRef(false);
+
+  function commit(shouldSave: boolean) {
+    if (settledRef.current) return;
+    settledRef.current = true;
+    setIsEditing(false);
+    const trimmed = draft.trim();
+    if (shouldSave && trimmed && trimmed !== value) onSave(trimmed);
+  }
 
   if (isEditing) {
     return (
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          setIsEditing(false);
-          if (draft.trim() && draft.trim() !== value) onSave(draft.trim());
+          commit(true);
         }}
         className="inline-flex"
       >
@@ -64,7 +72,10 @@ function InlineEditableText({
           autoFocus
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onBlur={() => setIsEditing(false)}
+          onBlur={() => commit(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") commit(false);
+          }}
           className="rounded border border-black/20 bg-transparent px-2 py-0.5 text-sm dark:border-white/20"
         />
       </form>
@@ -76,6 +87,7 @@ function InlineEditableText({
       type="button"
       onClick={() => {
         setDraft(value);
+        settledRef.current = false;
         setIsEditing(true);
       }}
       className="text-xs text-zinc-500 underline dark:text-zinc-400"
