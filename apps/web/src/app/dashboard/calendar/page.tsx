@@ -301,7 +301,15 @@ export default function CalendarPage() {
               </select>
               <button
                 type="button"
-                onClick={() => handleDelete(appt.id)}
+                onClick={() => {
+                  if (
+                    confirm(
+                      `Termin mit ${appt.customer.name} am ${formatTime(appt.startTime)} wirklich löschen?`,
+                    )
+                  ) {
+                    handleDelete(appt.id);
+                  }
+                }}
                 className="text-xs text-zinc-500 underline hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400"
               >
                 löschen

@@ -294,12 +294,19 @@ function DayBlock({
         />
         <button
           type="button"
-          onClick={() =>
+          onClick={() => {
+            if (
+              !confirm(
+                `Tag "${day.name}" mit allen Abschnitten und Übungen wirklich löschen?`,
+              )
+            ) {
+              return;
+            }
             runAction(async () => {
               await removeTrainingDay(token, day.id);
               await onChanged();
-            })
-          }
+            });
+          }}
           className="text-xs text-zinc-500 underline hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400"
         >
           löschen
@@ -415,12 +422,19 @@ function SectionBlock({
         />
         <button
           type="button"
-          onClick={() =>
+          onClick={() => {
+            if (
+              !confirm(
+                `Abschnitt "${section.category}" mit allen Übungen wirklich löschen?`,
+              )
+            ) {
+              return;
+            }
             runAction(async () => {
               await removeTrainingSection(token, section.id);
               await onChanged();
-            })
-          }
+            });
+          }}
           className="text-xs text-zinc-500 underline hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400"
         >
           löschen
@@ -614,12 +628,13 @@ function ExerciseRow({
 
       <button
         type="button"
-        onClick={() =>
+        onClick={() => {
+          if (!confirm(`Übung "${exercise.name}" wirklich löschen?`)) return;
           runAction(async () => {
             await removeTrainingExercise(token, exercise.id);
             await onChanged();
-          })
-        }
+          });
+        }}
         className="text-xs text-zinc-500 underline hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400"
       >
         löschen

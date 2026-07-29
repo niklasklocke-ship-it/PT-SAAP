@@ -284,7 +284,15 @@ export function ProgressSection({
                             <td className="px-3 py-2 text-right">
                               <button
                                 type="button"
-                                onClick={() => handleDelete(entry.id)}
+                                onClick={() => {
+                                  if (
+                                    confirm(
+                                      `Eintrag vom ${formatDate(entry.performedAt)} wirklich löschen?`,
+                                    )
+                                  ) {
+                                    handleDelete(entry.id);
+                                  }
+                                }}
                                 className="text-xs text-zinc-500 underline hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400"
                               >
                                 löschen

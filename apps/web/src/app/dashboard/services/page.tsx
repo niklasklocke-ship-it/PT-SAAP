@@ -114,7 +114,11 @@ export default function ServicesPage() {
               </button>
               <button
                 type="button"
-                onClick={() => handleDelete(service.id)}
+                onClick={() => {
+                  if (confirm(`Leistung "${service.name}" wirklich löschen?`)) {
+                    handleDelete(service.id);
+                  }
+                }}
                 className="text-xs text-zinc-500 underline hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400"
               >
                 löschen
