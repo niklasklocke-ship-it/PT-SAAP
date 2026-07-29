@@ -24,21 +24,28 @@ export function DashboardNav() {
   const router = useRouter();
   const { tenant, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setIsMenuOpen(false);
+    setIsMobileNavOpen(false);
   }, [pathname]);
 
   useEffect(() => {
-    if (!isMenuOpen) return;
+    if (!isMenuOpen && !isMobileNavOpen) return;
     function handlePointerDown(e: PointerEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
         setIsMenuOpen(false);
+        setIsMobileNavOpen(false);
       }
     }
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setIsMenuOpen(false);
+      if (e.key === "Escape") {
+        setIsMenuOpen(false);
+        setIsMobileNavOpen(false);
+      }
     }
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
@@ -46,7 +53,7 @@ export function DashboardNav() {
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isMenuOpen]);
+  }, [isMenuOpen, isMobileNavOpen]);
 
   function handleLogout() {
     setIsMenuOpen(false);
@@ -55,28 +62,55 @@ export function DashboardNav() {
   }
 
   return (
-    <nav className="border-b border-black/10 bg-white dark:border-white/10 dark:bg-zinc-950">
+    <nav
+      ref={navRef}
+      className="border-b border-black/10 bg-white dark:border-white/10 dark:bg-zinc-950"
+    >
       <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-3">
         <div className="flex items-center gap-6">
+          <button
+            type="button"
+            onClick={() => {
+              setIsMenuOpen(false);
+              setIsMobileNavOpen((open) => !open);
+            }}
+            aria-expanded={isMobileNavOpen}
+            aria-label={isMobileNavOpen ? "Menü schließen" : "Menü öffnen"}
+            className="-ml-1 rounded p-1 text-zinc-600 hover:bg-black/5 hover:text-black dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-zinc-50 sm:hidden"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+              {isMobileNavOpen ? (
+                <path d="M6 6l8 8m0-8l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              ) : (
+                <path
+                  fillRule="evenodd"
+                  d="M3 5.5A.75.75 0 013.75 4.75h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 5.5zM3 10a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 10zm0 4.5a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75z"
+                  clipRule="evenodd"
+                />
+              )}
+            </svg>
+          </button>
           <Link href="/dashboard" className="font-semibold text-black dark:text-zinc-50">
             PT One
           </Link>
-          {NAV_ITEMS.map((item) => {
-            const isActive = pathname?.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={
-                  isActive
-                    ? "text-sm font-medium text-black underline dark:text-zinc-50"
-                    : "text-sm font-medium text-zinc-600 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
-                }
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+          <div className="hidden items-center gap-6 sm:flex">
+            {NAV_ITEMS.map((item) => {
+              const isActive = pathname?.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={
+                    isActive
+                      ? "text-sm font-medium text-black underline dark:text-zinc-50"
+                      : "text-sm font-medium text-zinc-600 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
+                  }
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
         </div>
         <div ref={menuRef} className="relative">
           <button
@@ -93,7 +127,7 @@ export function DashboardNav() {
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-xs font-semibold text-white dark:bg-white dark:text-black">
               {initials(tenant?.name ?? "")}
             </span>
-            {tenant?.name}
+            <span className="hidden sm:inline">{tenant?.name}</span>
             <svg
               viewBox="0 0 20 20"
               fill="currentColor"
@@ -136,6 +170,27 @@ export function DashboardNav() {
           )}
         </div>
       </div>
+
+      {isMobileNavOpen && (
+        <div className="border-t border-black/10 px-6 py-2 dark:border-white/10 sm:hidden">
+          {NAV_ITEMS.map((item) => {
+            const isActive = pathname?.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={
+                  isActive
+                    ? "block py-2 text-sm font-medium text-black dark:text-zinc-50"
+                    : "block py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400"
+                }
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </nav>
   );
 }

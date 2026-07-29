@@ -72,7 +72,7 @@ export default function CustomerDetailPage() {
         {customer.phone ? ` · ${customer.phone}` : ""}
       </p>
 
-      <div className="mb-6 flex gap-4 border-b border-black/10 dark:border-white/10">
+      <div className="mb-6 flex gap-4 overflow-x-auto border-b border-black/10 dark:border-white/10">
         {TABS.map((tab) => (
           <button
             key={tab.key}
@@ -80,8 +80,8 @@ export default function CustomerDetailPage() {
             onClick={() => setActiveTab(tab.key)}
             className={
               activeTab === tab.key
-                ? "border-b-2 border-black px-1 pb-2 text-sm font-medium text-black dark:border-white dark:text-zinc-50"
-                : "border-b-2 border-transparent px-1 pb-2 text-sm font-medium text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
+                ? "shrink-0 whitespace-nowrap border-b-2 border-black px-1 pb-2 text-sm font-medium text-black dark:border-white dark:text-zinc-50"
+                : "shrink-0 whitespace-nowrap border-b-2 border-transparent px-1 pb-2 text-sm font-medium text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
             }
           >
             {tab.label}
