@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { getProfile, updateProfile, ApiError, type TenantProfile } from "@/lib/api";
 import { SaveButton } from "@/components/save-button";
+import { PaypalSubscription } from "./paypal-subscription";
 
 const PLAN_LABEL: Record<string, string> = {
   trial: "Testphase",
@@ -133,8 +134,10 @@ export default function ProfilePage() {
           Plan: {PLAN_LABEL[profile.subscriptionPlan] ?? profile.subscriptionPlan}
         </p>
 
-        <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Zahlungsart
+        <PaypalSubscription token={token} />
+
+        <label className="mb-1 mt-4 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          Notiz zur Zahlungsart
         </label>
         <input
           type="text"
@@ -145,7 +148,7 @@ export default function ProfilePage() {
           className="w-full rounded border border-black/15 bg-transparent px-3 py-2 text-black dark:border-white/15 dark:text-zinc-50"
         />
         <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-          Nur ein Hinweistext für dich - keine echte Zahlungsabwicklung.
+          Nur ein Hinweistext für dich - das eigentliche Abo läuft über PayPal oben.
         </p>
       </div>
     </div>

@@ -19,6 +19,14 @@ model Tenant {
   // 4242") - keine echte Zahlungsabwicklung/Stripe-Kunde dahinter, siehe
   // README.
   paymentMethodLabel String?
+  // Echte PayPal-Abo-Anbindung fürs eigene PT-One-Abo (nicht zu verwechseln
+  // mit der Stripe-Integration in payments/, die Rechnungen der Kunden des
+  // Trainers abwickelt).
+  paypalSubscriptionId         String?            @unique
+  paypalPlanId                 String?
+  subscriptionStatus           SubscriptionStatus @default(NONE)
+  subscriptionCurrentPeriodEnd DateTime?
+  subscriptionCancelledAt      DateTime?
   publicApiKey     String   @unique @default(cuid())
   // Gehashter Passwort-Reset-Token (nie der Rohtoken - gleiche Logik wie
   // passwordHash) + Ablaufzeit. Beide null, solange kein Reset läuft.
@@ -34,6 +42,17 @@ model Tenant {
   googleCalendarConnection GoogleCalendarConnection?
 
   @@map("tenants")
+}
+
+// Spiegelt PayPals eigene Subscription-Statusmaschine, damit der Webhook-
+// Handler die Events direkt auf ein Feld mappen kann.
+enum SubscriptionStatus {
+  NONE
+  PENDING
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+  EXPIRED
 }
 
 // OAuth-Verbindung eines Trainers zu seinem Google-Kalender. Ein Tenant hat

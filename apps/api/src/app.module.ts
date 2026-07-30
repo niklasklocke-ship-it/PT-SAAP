@@ -11,6 +11,7 @@ import { PublicModule } from './public/public.module';
 import { ExerciseLogsModule } from './exercise-logs/exercise-logs.module';
 import { TrainingPlansModule } from './training-plans/training-plans.module';
 import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
     ExerciseLogsModule,
     TrainingPlansModule,
     GoogleCalendarModule,
+    BillingModule,
   ],
 })
 export class AppModule {}

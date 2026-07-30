@@ -509,3 +509,34 @@ export function updateProfile(token: string, data: UpdateProfileInput) {
     body: JSON.stringify(data),
   });
 }
+
+export type SubscriptionStatusValue =
+  | "NONE"
+  | "PENDING"
+  | "ACTIVE"
+  | "SUSPENDED"
+  | "CANCELLED"
+  | "EXPIRED";
+
+export interface SubscriptionStatus {
+  subscriptionStatus: SubscriptionStatusValue;
+  subscriptionCurrentPeriodEnd: string | null;
+  subscriptionCancelledAt: string | null;
+  paypalPlanId: string | null;
+}
+
+export function getSubscriptionStatus(token: string) {
+  return authRequest<SubscriptionStatus>(token, "/billing/subscription/status");
+}
+
+export function createSubscription(token: string) {
+  return authRequest<{ approveUrl: string }>(token, "/billing/subscription", {
+    method: "POST",
+  });
+}
+
+export function cancelSubscription(token: string) {
+  return authRequest<{ cancelled: boolean }>(token, "/billing/subscription/cancel", {
+    method: "POST",
+  });
+}
