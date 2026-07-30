@@ -57,7 +57,7 @@ export default function CustomersPage() {
           {customers.map((customer) => (
             <li key={customer.id}>
               <Link
-                href={`/dashboard/customers/${customer.id}`}
+                href={`/dashboard/customers/detail?id=${customer.id}`}
                 className="flex flex-col gap-1 px-4 py-3 hover:bg-black/[.03] dark:hover:bg-white/[.03]"
               >
                 <span className="font-medium text-black dark:text-zinc-50">

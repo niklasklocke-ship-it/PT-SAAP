@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
@@ -16,6 +16,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "PT One",
   description: "Terminmanagement & Buchhaltung für Personal Trainer",
+};
+
+// viewportFit: "cover" macht env(safe-area-inset-*) verfügbar - nötig für
+// die Capacitor-iOS-Hülle (Notch/Home-Indikator), in einem normalen Browser-
+// Tab ohne Effekt.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

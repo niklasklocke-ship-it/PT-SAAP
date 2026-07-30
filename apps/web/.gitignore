@@ -40,3 +40,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# capacitor / xcode (ios/ selbst wird versioniert, nur Nutzer-/Build-Artefakte ignorieren)
+ios/App/Pods/
+ios/App/build/
+ios/**/xcuserdata/
+ios/**/*.xcuserstate
+ios/DerivedData/

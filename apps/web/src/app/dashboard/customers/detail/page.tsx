@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getCustomer, updateCustomer, ApiError, type Customer } from "@/lib/api";
 import { ProgressSection } from "./progress-section";
@@ -22,20 +22,32 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 export default function CustomerDetailPage() {
-  const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
   const { token } = useAuth();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("ziele");
 
   useEffect(() => {
-    if (!token) return;
-    getCustomer(token, params.id)
+    if (!token || !id) return;
+    getCustomer(token, id)
       .then(setCustomer)
       .catch((err) =>
         setLoadError(err instanceof ApiError ? err.message : "Fehler beim Laden"),
       );
-  }, [token, params.id]);
+  }, [token, id]);
+
+  if (!id) {
+    return (
+      <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+        <p className="text-sm text-red-600 dark:text-red-400">Kein Kunde ausgewählt.</p>
+        <Link href="/dashboard/customers" className="mt-4 inline-block underline">
+          Zurück zur Kundenliste
+        </Link>
+      </div>
+    );
+  }
 
   if (loadError) {
     return (

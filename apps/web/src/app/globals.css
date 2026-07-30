@@ -23,4 +23,8 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  /* Nur in der Capacitor-iOS-Hülle relevant (Notch/Home-Indikator) - im
+     Browser ist env(safe-area-inset-*) 0. */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
