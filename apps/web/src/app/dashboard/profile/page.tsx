@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { getProfile, updateProfile, ApiError, type TenantProfile } from "@/lib/api";
+import { SaveButton } from "@/components/save-button";
 
 const PLAN_LABEL: Record<string, string> = {
   trial: "Testphase",
@@ -120,13 +121,7 @@ export default function ProfilePage() {
 
         {error && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
-        >
-          {isSubmitting ? "Speichert..." : isSaved ? "Gespeichert ✓" : "Speichern"}
-        </button>
+        <SaveButton isSubmitting={isSubmitting} isSaved={isSaved} />
       </form>
 
       <div className="rounded-lg border border-black/10 bg-white p-6 dark:border-white/10 dark:bg-zinc-950">

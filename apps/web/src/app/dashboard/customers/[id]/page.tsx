@@ -9,6 +9,7 @@ import { ProgressSection } from "./progress-section";
 import { TrainingPlanSection } from "./training-plan-section";
 import { PackagesSection } from "./packages-section";
 import { InvoicesPanel } from "@/components/invoices-panel";
+import { SaveButton } from "@/components/save-button";
 
 const TABS = [
   { key: "ziele", label: "Trainingsziele" },
@@ -101,24 +102,6 @@ export default function CustomerDetailPage() {
         <InvoicesPanel token={token} customerId={customer.id} />
       )}
     </div>
-  );
-}
-
-function SaveButton({
-  isSubmitting,
-  isSaved,
-}: {
-  isSubmitting: boolean;
-  isSaved: boolean;
-}) {
-  return (
-    <button
-      type="submit"
-      disabled={isSubmitting}
-      className="rounded bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
-    >
-      {isSubmitting ? "Speichert..." : isSaved ? "Gespeichert ✓" : "Speichern"}
-    </button>
   );
 }
 

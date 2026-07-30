@@ -10,6 +10,7 @@ import {
   type CustomerPackage,
   type Service,
 } from "@/lib/api";
+import { SaveButton } from "@/components/save-button";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("de-DE");
@@ -130,6 +131,7 @@ function NewPackageForm({
   const [validUntil, setValidUntil] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -143,10 +145,12 @@ function NewPackageForm({
         remainingSessions: Number(remainingSessions),
         validUntil: validUntil || undefined,
       });
+      setIsSubmitting(false);
+      setIsSaved(true);
+      await new Promise((resolve) => setTimeout(resolve, 700));
       await onCreated();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Anlegen fehlgeschlagen");
-    } finally {
       setIsSubmitting(false);
     }
   }
@@ -206,13 +210,12 @@ function NewPackageForm({
           className="rounded border border-black/15 bg-transparent px-3 py-2 text-black dark:border-white/15 dark:text-zinc-50"
         />
       </div>
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="rounded bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
-      >
-        {isSubmitting ? "Speichert..." : "Verkaufen"}
-      </button>
+      <SaveButton
+        isSubmitting={isSubmitting}
+        isSaved={isSaved}
+        idleLabel="Verkaufen"
+        savedLabel="Verkauft ✓"
+      />
       {error && <p className="w-full text-sm text-red-600 dark:text-red-400">{error}</p>}
     </form>
   );

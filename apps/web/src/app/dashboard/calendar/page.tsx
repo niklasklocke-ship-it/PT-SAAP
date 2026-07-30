@@ -16,6 +16,7 @@ import {
   type Service,
 } from "@/lib/api";
 import { GoogleCalendarConnect } from "./google-calendar-connect";
+import { SaveButton } from "@/components/save-button";
 
 const STATUS_LABEL: Record<AppointmentStatus, string> = {
   BOOKED: "Gebucht",
@@ -341,6 +342,7 @@ function NewAppointmentForm({
   const [startTime, setStartTime] = useState("09:00");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   const selectedService = services.find((s) => s.id === serviceId);
 
@@ -358,10 +360,12 @@ function NewAppointmentForm({
         startTime: start.toISOString(),
         endTime: end.toISOString(),
       });
+      setIsSubmitting(false);
+      setIsSaved(true);
+      await new Promise((resolve) => setTimeout(resolve, 700));
       await onCreated();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Anlegen fehlgeschlagen");
-    } finally {
       setIsSubmitting(false);
     }
   }
@@ -451,13 +455,13 @@ function NewAppointmentForm({
           className="rounded border border-black/15 bg-transparent px-3 py-2 text-black dark:border-white/15 dark:text-zinc-50"
         />
       </div>
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="rounded bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
-      >
-        {isSubmitting ? "Wird angelegt..." : "Termin anlegen"}
-      </button>
+      <SaveButton
+        isSubmitting={isSubmitting}
+        isSaved={isSaved}
+        idleLabel="Termin anlegen"
+        submittingLabel="Wird angelegt..."
+        savedLabel="Angelegt ✓"
+      />
       {error && <p className="w-full text-sm text-red-600 dark:text-red-400">{error}</p>}
     </form>
   );
