@@ -17,6 +17,7 @@ import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { FindAppointmentsQueryDto } from './dto/find-appointments-query.dto';
+import { CompleteAppointmentDto } from './dto/complete-appointment.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('appointments')
@@ -48,6 +49,15 @@ export class AppointmentsController {
     @Body() dto: UpdateAppointmentDto,
   ) {
     return this.appointmentsService.update(tenant.tenantId, id, dto);
+  }
+
+  @Post(':id/complete')
+  complete(
+    @CurrentTenant() tenant: { tenantId: string },
+    @Param('id') id: string,
+    @Body() dto: CompleteAppointmentDto,
+  ) {
+    return this.appointmentsService.complete(tenant.tenantId, id, dto);
   }
 
   @Delete(':id')

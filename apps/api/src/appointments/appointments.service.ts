@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { CompleteAppointmentDto } from './dto/complete-appointment.dto';
 
 @Injectable()
 export class AppointmentsService {
@@ -173,6 +174,70 @@ export class AppointmentsService {
     }
 
     return updated;
+  }
+
+  // Schließt einen Termin ab und übernimmt optional den gewählten
+  // Trainingstag als Fortschritt - der Trainer wählt den Tag beim
+  // Abschließen aus, da ein Termin selbst keinem festen Tag zugeordnet ist
+  // (der Plan hat mehrere Tage, z.B. Push/Pull, die sich abwechseln).
+  async complete(tenantId: string, id: string, dto: CompleteAppointmentDto) {
+    const appointment = await this.findOne(tenantId, id);
+
+    const loggedExercises = dto.trainingDayId
+      ? await this.logTrainingDayProgress(
+          appointment.customerId,
+          dto.trainingDayId,
+          appointment.startTime,
+        )
+      : 0;
+
+    const updated = await this.prisma.appointment.update({
+      where: { id },
+      data: { status: 'COMPLETED' },
+    });
+
+    return { ...updated, loggedExercises };
+  }
+
+  // Legt für jede Übung des gewählten Trainingstags einen Fortschritts-
+  // Eintrag an. Wert kommt vom zuletzt für diese Übung geloggten Eintrag
+  // (nicht vom Plan-Sollwert) - fehlt ein vorheriger Log, bleibt der Wert
+  // leer, der Trainer trägt ihn im Fortschritt-Tab nach.
+  private async logTrainingDayProgress(
+    customerId: string,
+    trainingDayId: string,
+    performedAt: Date,
+  ): Promise<number> {
+    const day = await this.prisma.trainingDay.findFirst({
+      where: { id: trainingDayId, plan: { customerId } },
+      include: { sections: { include: { exercises: true } } },
+    });
+    if (!day) {
+      throw new NotFoundException('Trainingstag nicht gefunden');
+    }
+
+    let count = 0;
+    for (const section of day.sections) {
+      for (const exercise of section.exercises) {
+        const lastLog = await this.prisma.exerciseLog.findFirst({
+          where: { customerId, exerciseName: exercise.name },
+          orderBy: { performedAt: 'desc' },
+        });
+        await this.prisma.exerciseLog.create({
+          data: {
+            customerId,
+            category: section.category,
+            exerciseName: exercise.name,
+            weight: lastLog?.weight ?? undefined,
+            sets: lastLog?.sets ?? undefined,
+            reps: lastLog?.reps ?? undefined,
+            performedAt,
+          },
+        });
+        count += 1;
+      }
+    }
+    return count;
   }
 
   async remove(tenantId: string, id: string) {

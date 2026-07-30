@@ -6,9 +6,11 @@ import {
   listAppointments,
   createAppointment,
   updateAppointmentStatus,
+  completeAppointment,
   deleteAppointment,
   listCustomers,
   listServices,
+  getOrCreateTrainingPlan,
   ApiError,
   type Appointment,
   type AppointmentStatus,
@@ -74,6 +76,12 @@ export default function CalendarPage() {
     return { year: now.getFullYear(), month: now.getMonth() };
   });
   const [selectedDate, setSelectedDate] = useState(todayDateKey);
+  const [completingId, setCompletingId] = useState<string | null>(null);
+  const [completingDays, setCompletingDays] = useState<{ id: string; name: string }[] | null>(
+    null,
+  );
+  const [completingDayId, setCompletingDayId] = useState("");
+  const [isCompleting, setIsCompleting] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -126,12 +134,46 @@ export default function CalendarPage() {
     setSelectedDate(todayDateKey());
   }
 
-  async function handleStatusChange(id: string, status: AppointmentStatus) {
+  // "Abgeschlossen" fragt erst nach, welcher Trainingstag gemacht wurde
+  // (ein Termin ist keinem festen Tag zugeordnet, der Plan hat i.d.R.
+  // mehrere Tage wie Push/Pull) - alle anderen Status wechseln direkt.
+  async function handleStatusChange(appt: Appointment, status: AppointmentStatus) {
+    if (status === "COMPLETED") {
+      setCompletingId(appt.id);
+      setCompletingDayId("");
+      setCompletingDays(null);
+      try {
+        const plan = await getOrCreateTrainingPlan(token!, appt.customerId);
+        setCompletingDays(plan.days.map((d) => ({ id: d.id, name: d.name })));
+      } catch {
+        setCompletingDays([]);
+      }
+      return;
+    }
     try {
-      await updateAppointmentStatus(token!, id, status);
+      await updateAppointmentStatus(token!, appt.id, status);
       await refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Aktion fehlgeschlagen");
+    }
+  }
+
+  function cancelCompleting() {
+    setCompletingId(null);
+    setCompletingDays(null);
+    setCompletingDayId("");
+  }
+
+  async function confirmComplete(id: string) {
+    setIsCompleting(true);
+    try {
+      await completeAppointment(token!, id, completingDayId || undefined);
+      cancelCompleting();
+      await refresh();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Abschließen fehlgeschlagen");
+    } finally {
+      setIsCompleting(false);
     }
   }
 
@@ -291,7 +333,7 @@ export default function CalendarPage() {
               </span>
               <select
                 value={appt.status}
-                onChange={(e) => handleStatusChange(appt.id, e.target.value as AppointmentStatus)}
+                onChange={(e) => handleStatusChange(appt, e.target.value as AppointmentStatus)}
                 className="rounded border border-black/15 bg-transparent px-2 py-1 text-sm text-black dark:border-white/15 dark:text-zinc-50"
               >
                 {Object.entries(STATUS_LABEL).map(([value, label]) => (
@@ -315,6 +357,47 @@ export default function CalendarPage() {
               >
                 löschen
               </button>
+
+              {completingId === appt.id && (
+                <div className="flex w-full flex-wrap items-center gap-2 rounded border border-black/10 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-900">
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                    Welcher Trainingstag wurde gemacht?
+                  </span>
+                  {completingDays === null ? (
+                    <span className="text-sm text-zinc-500 dark:text-zinc-400">Lädt...</span>
+                  ) : (
+                    <select
+                      value={completingDayId}
+                      onChange={(e) => setCompletingDayId(e.target.value)}
+                      className="rounded border border-black/15 bg-transparent px-2 py-1 text-sm text-black dark:border-white/15 dark:text-zinc-50"
+                    >
+                      <option value="" className="text-black">
+                        Ohne Trainingsplan abschließen
+                      </option>
+                      {completingDays.map((day) => (
+                        <option key={day.id} value={day.id} className="text-black">
+                          {day.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => confirmComplete(appt.id)}
+                    disabled={isCompleting || completingDays === null}
+                    className="rounded bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+                  >
+                    {isCompleting ? "Speichert..." : "Abschließen"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelCompleting}
+                    className="text-sm text-zinc-500 underline dark:text-zinc-400"
+                  >
+                    Abbrechen
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -420,6 +420,19 @@ export function updateAppointmentStatus(token: string, id: string, status: Appoi
   });
 }
 
+// Schließt den Termin ab und übernimmt optional den gewählten Trainingstag
+// als Fortschritts-Einträge (siehe AppointmentsService.complete im Backend).
+export function completeAppointment(token: string, id: string, trainingDayId?: string) {
+  return authRequest<Appointment & { loggedExercises: number }>(
+    token,
+    `/appointments/${id}/complete`,
+    {
+      method: "POST",
+      body: JSON.stringify({ trainingDayId }),
+    },
+  );
+}
+
 export function deleteAppointment(token: string, id: string) {
   return authRequest<void>(token, `/appointments/${id}`, { method: "DELETE" });
 }
