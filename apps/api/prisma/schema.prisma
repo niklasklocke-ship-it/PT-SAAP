@@ -276,6 +276,7 @@ model Invoice {
   status        InvoiceStatus @default(OPEN)
   issuedAt      DateTime      @default(now())
   dueAt         DateTime?
+  emailSentAt   DateTime?
 
   payments Payment[]
 

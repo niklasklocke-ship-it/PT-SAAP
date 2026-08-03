@@ -5,6 +5,8 @@ import {
   listInvoices,
   createInvoice,
   cancelInvoice,
+  sendInvoiceEmail,
+  downloadInvoicePdf,
   listCustomers,
   listAppointments,
   ApiError,
@@ -45,6 +47,8 @@ export function InvoicesPanel({
   const [customers, setCustomers] = useState<Customer[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     listInvoices(token)
@@ -70,6 +74,34 @@ export function InvoicesPanel({
       await refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Stornieren fehlgeschlagen");
+    }
+  }
+
+  async function handleSendEmail(id: string) {
+    setError(null);
+    setSendingId(id);
+    try {
+      await sendInvoiceEmail(token, id);
+      // emailSentAt kommt aus der DB, nicht aus lokalem State - refresh()
+      // holt den vom Backend gesetzten Vermerk, der auch nach einem Reload
+      // bestehen bleibt.
+      await refresh();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Versand fehlgeschlagen");
+    } finally {
+      setSendingId(null);
+    }
+  }
+
+  async function handleDownloadPdf(invoice: Invoice) {
+    setError(null);
+    setDownloadingId(invoice.id);
+    try {
+      await downloadInvoicePdf(token, invoice.id, invoice.invoiceNumber);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "PDF-Download fehlgeschlagen");
+    } finally {
+      setDownloadingId(null);
     }
   }
 
@@ -144,15 +176,53 @@ export function InvoicesPanel({
                     {STATUS_LABEL[invoice.status]}
                   </td>
                   <td className="px-3 py-2 text-right">
-                    {invoice.status !== "CANCELLED" && (
+                    <div className="flex items-center justify-end gap-3">
                       <button
                         type="button"
-                        onClick={() => handleCancel(invoice.id)}
-                        className="text-xs text-zinc-500 underline hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400"
+                        disabled={downloadingId === invoice.id}
+                        onClick={() => handleDownloadPdf(invoice)}
+                        className="text-xs text-zinc-500 underline hover:text-black disabled:opacity-50 dark:text-zinc-400 dark:hover:text-zinc-50"
                       >
-                        stornieren
+                        {downloadingId === invoice.id ? "lädt..." : "PDF"}
                       </button>
-                    )}
+                      {invoice.customer.email ? (
+                        <div className="flex flex-col items-end gap-0.5">
+                          <button
+                            type="button"
+                            disabled={sendingId === invoice.id}
+                            onClick={() => handleSendEmail(invoice.id)}
+                            className="text-xs text-zinc-500 underline hover:text-black disabled:opacity-50 dark:text-zinc-400 dark:hover:text-zinc-50"
+                          >
+                            {sendingId === invoice.id
+                              ? "wird gesendet..."
+                              : invoice.emailSentAt
+                                ? "erneut senden"
+                                : "per E-Mail senden"}
+                          </button>
+                          {invoice.emailSentAt && (
+                            <span className="text-[11px] text-zinc-400 dark:text-zinc-600">
+                              versendet am {formatDate(invoice.emailSentAt)}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span
+                          className="text-xs text-zinc-400 dark:text-zinc-600"
+                          title="Kunde hat keine E-Mail-Adresse hinterlegt"
+                        >
+                          keine E-Mail hinterlegt
+                        </span>
+                      )}
+                      {invoice.status !== "CANCELLED" && (
+                        <button
+                          type="button"
+                          onClick={() => handleCancel(invoice.id)}
+                          className="text-xs text-zinc-500 underline hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400"
+                        >
+                          stornieren
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

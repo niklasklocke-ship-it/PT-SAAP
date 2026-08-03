@@ -25,6 +25,7 @@ import {
 } from "@/lib/api";
 import { getSuggestedExercises } from "@/lib/exercise-catalog";
 import { SortableList, type DragHandleProps } from "@/components/sortable-list";
+import { TrainingPlanImportReview } from "./training-plan-import-review";
 
 function DragHandle({ dragHandle }: { dragHandle: DragHandleProps }) {
   return (
@@ -189,9 +190,15 @@ export function TrainingPlanSection({
 
   return (
     <div className="mb-6 rounded-lg border border-black/10 bg-white p-6 dark:border-white/10 dark:bg-zinc-950">
-      <h2 className="mb-4 text-lg font-semibold text-black dark:text-zinc-50">
-        Trainingsplan
-      </h2>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold text-black dark:text-zinc-50">Trainingsplan</h2>
+        <TrainingPlanImportReview
+          token={token}
+          customerId={customerId}
+          hasExistingPlan={plan.days.length > 0}
+          onImported={refresh}
+        />
+      </div>
 
       {plan.days.length === 0 && (
         <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">

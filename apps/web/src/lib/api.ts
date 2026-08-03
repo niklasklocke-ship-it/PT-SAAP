@@ -311,6 +311,7 @@ export interface Invoice {
   status: InvoiceStatus;
   issuedAt: string;
   dueAt: string | null;
+  emailSentAt: string | null;
   customer: Customer;
 }
 
@@ -335,6 +336,37 @@ export function createInvoice(token: string, data: InvoiceInput) {
 
 export function cancelInvoice(token: string, id: string) {
   return authRequest<Invoice>(token, `/invoices/${id}/cancel`, { method: "PATCH" });
+}
+
+export function sendInvoiceEmail(token: string, id: string) {
+  return authRequest<{ sent: boolean }>(token, `/invoices/${id}/send-email`, {
+    method: "POST",
+  });
+}
+
+// PDF-Download braucht den Bearer-Token im Header, ein normaler <a href>
+// kann den nicht mitschicken - daher eigener fetch-Call, der die Antwort
+// als Blob lädt und clientseitig einen Download auslöst.
+export async function downloadInvoicePdf(token: string, id: string, invoiceNumber: string) {
+  const res = await fetch(`${API_URL}/invoices/${id}/pdf`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const message = body?.message ?? res.statusText;
+    throw new ApiError(res.status, Array.isArray(message) ? message.join(", ") : message);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Rechnung-${invoiceNumber}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 export interface Service {
@@ -551,5 +583,67 @@ export function createSubscription(token: string) {
 export function cancelSubscription(token: string) {
   return authRequest<{ cancelled: boolean }>(token, "/billing/subscription/cancel", {
     method: "POST",
+  });
+}
+
+// --- Trainingsplan-Import per PDF-Upload ---
+
+export interface ParsedTrainingExercise {
+  name: string;
+  sets: number | null;
+  reps: number | null;
+  weight: number | null;
+  restSeconds: number | null;
+  notes: string | null;
+}
+
+export interface ParsedTrainingSection {
+  category: string;
+  exercises: ParsedTrainingExercise[];
+}
+
+export interface ParsedTrainingDay {
+  name: string;
+  sections: ParsedTrainingSection[];
+}
+
+export interface ParsedTrainingPlan {
+  days: ParsedTrainingDay[];
+}
+
+// Datei-Upload braucht multipart/form-data - darf NICHT über authRequest/request
+// laufen, da der request()-Helper zwingend "Content-Type: application/json"
+// setzt. Eigener fetch-Call, Browser setzt die Multipart-Boundary selbst.
+export async function uploadTrainingPlanFile(
+  token: string,
+  customerId: string,
+  file: File,
+): Promise<ParsedTrainingPlan> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_URL}/training-plan-import/customer/${customerId}/parse`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const message = body?.message ?? res.statusText;
+    throw new ApiError(res.status, Array.isArray(message) ? message.join(", ") : message);
+  }
+
+  return res.json() as Promise<ParsedTrainingPlan>;
+}
+
+export function commitImportedTrainingPlan(
+  token: string,
+  customerId: string,
+  data: ParsedTrainingPlan & { mode: "REPLACE" | "APPEND" },
+) {
+  return authRequest<TrainingPlan>(token, `/training-plans/customer/${customerId}/import`, {
+    method: "POST",
+    body: JSON.stringify(data),
   });
 }

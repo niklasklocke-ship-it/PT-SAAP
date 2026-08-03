@@ -1,11 +1,17 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
+import { InvoicePdfService } from './invoice-pdf.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 
 @Injectable()
 export class InvoicesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+    private readonly invoicePdfService: InvoicePdfService,
+  ) {}
 
   // Fortlaufende Rechnungsnummer pro Trainer und Jahr, z.B. "2026-0007".
   // Für GoBD muss diese lückenlos sein. Die Zählung + das Anlegen der
@@ -84,7 +90,7 @@ export class InvoicesService {
   async findOne(tenantId: string, id: string) {
     const invoice = await this.prisma.invoice.findFirst({
       where: { id, tenantId },
-      include: { customer: true, payments: true },
+      include: { customer: true, payments: true, appointment: { include: { service: true } } },
     });
     if (!invoice) {
       throw new NotFoundException('Rechnung nicht gefunden');
@@ -95,5 +101,60 @@ export class InvoicesService {
   async markStatus(tenantId: string, id: string, status: 'PAID' | 'OVERDUE' | 'CANCELLED') {
     await this.findOne(tenantId, id);
     return this.prisma.invoice.update({ where: { id }, data: { status } });
+  }
+
+  private async buildInvoicePdf(tenantId: string, id: string) {
+    const invoice = await this.findOne(tenantId, id);
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
+    if (!tenant) {
+      throw new NotFoundException('Trainer nicht gefunden');
+    }
+
+    const buffer = await this.invoicePdfService.generate({
+      tenantName: tenant.name,
+      tenantTaxId: tenant.taxId,
+      customerName: invoice.customer.name,
+      customerEmail: invoice.customer.email,
+      invoiceNumber: invoice.invoiceNumber,
+      serviceName: invoice.appointment?.service.name ?? null,
+      amount: invoice.amount.toString(),
+      taxRate: invoice.taxRate.toString(),
+      status: invoice.status,
+      issuedAt: invoice.issuedAt,
+      dueAt: invoice.dueAt,
+    });
+    const filename = `Rechnung-${invoice.invoiceNumber}.pdf`;
+
+    return { buffer, filename, invoice, tenant };
+  }
+
+  async getPdf(tenantId: string, id: string) {
+    const { buffer, filename } = await this.buildInvoicePdf(tenantId, id);
+    return { buffer, filename };
+  }
+
+  async sendByEmail(tenantId: string, id: string) {
+    const { buffer, filename, invoice, tenant } = await this.buildInvoicePdf(tenantId, id);
+    if (!invoice.customer.email) {
+      throw new BadRequestException('Kunde hat keine E-Mail-Adresse hinterlegt');
+    }
+
+    await this.mailService.sendInvoiceEmail(invoice.customer.email, {
+      tenantName: tenant.name,
+      customerName: invoice.customer.name,
+      invoiceNumber: invoice.invoiceNumber,
+      amount: invoice.amount.toString(),
+      taxRate: invoice.taxRate.toString(),
+      issuedAt: invoice.issuedAt,
+      dueAt: invoice.dueAt,
+      pdfBuffer: buffer,
+      pdfFilename: filename,
+    });
+
+    // Vermerk erst NACH erfolgreichem Versand setzen - schlägt sendInvoiceEmail
+    // fehl (z.B. SMTP nicht konfiguriert), bleibt emailSentAt bewusst null.
+    await this.prisma.invoice.update({ where: { id }, data: { emailSentAt: new Date() } });
+
+    return { sent: true };
   }
 }

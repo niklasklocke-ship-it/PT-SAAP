@@ -6,6 +6,7 @@ import { CreateTrainingSectionDto } from './dto/create-training-section.dto';
 import { UpdateTrainingSectionDto } from './dto/update-training-section.dto';
 import { CreateTrainingExerciseDto } from './dto/create-training-exercise.dto';
 import { UpdateTrainingExerciseDto } from './dto/update-training-exercise.dto';
+import { ImportTrainingPlanDto } from './dto/import-training-plan.dto';
 
 const PLAN_INCLUDE = {
   days: {
@@ -228,5 +229,58 @@ export class TrainingPlansService {
         this.prisma.trainingExercise.update({ where: { id }, data: { order: index } }),
       ),
     );
+  }
+
+  // --- Plan-Import (PDF-Upload, siehe training-plan-import/) ---
+
+  // Schreibt einen vom Trainer bestätigten, bereits geparsten Plan in die DB.
+  // REPLACE löscht den bisherigen Plan des Kunden komplett (Sections/Exercises
+  // hängen per DB-Cascade dran), APPEND hängt die neuen Tage nur hinten an -
+  // die Wahl trifft der Trainer in der Vorschau, nicht diese Methode.
+  async importPlan(tenantId: string, customerId: string, dto: ImportTrainingPlanDto) {
+    await this.assertCustomerBelongsToTenant(tenantId, customerId);
+
+    return this.prisma.$transaction(async (tx) => {
+      let plan = await tx.trainingPlan.findUnique({ where: { customerId } });
+      if (!plan) {
+        plan = await tx.trainingPlan.create({ data: { customerId } });
+      }
+
+      let startOrder = 0;
+      if (dto.mode === 'REPLACE') {
+        await tx.trainingDay.deleteMany({ where: { planId: plan.id } });
+      } else {
+        startOrder = await tx.trainingDay.count({ where: { planId: plan.id } });
+      }
+
+      for (const [dayIndex, day] of dto.days.entries()) {
+        await tx.trainingDay.create({
+          data: {
+            planId: plan.id,
+            name: day.name,
+            order: startOrder + dayIndex,
+            sections: {
+              create: day.sections.map((section, sectionIndex) => ({
+                category: section.category,
+                order: sectionIndex,
+                exercises: {
+                  create: section.exercises.map((exercise, exerciseIndex) => ({
+                    name: exercise.name,
+                    sets: exercise.sets ?? undefined,
+                    reps: exercise.reps ?? undefined,
+                    weight: exercise.weight ?? undefined,
+                    restSeconds: exercise.restSeconds ?? undefined,
+                    notes: exercise.notes ?? undefined,
+                    order: exerciseIndex,
+                  })),
+                },
+              })),
+            },
+          },
+        });
+      }
+
+      return tx.trainingPlan.findUnique({ where: { id: plan.id }, include: PLAN_INCLUDE });
+    });
   }
 }

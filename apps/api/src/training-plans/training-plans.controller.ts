@@ -20,6 +20,7 @@ import { UpdateTrainingSectionDto } from './dto/update-training-section.dto';
 import { CreateTrainingExerciseDto } from './dto/create-training-exercise.dto';
 import { UpdateTrainingExerciseDto } from './dto/update-training-exercise.dto';
 import { ReorderDto } from './dto/reorder.dto';
+import { ImportTrainingPlanDto } from './dto/import-training-plan.dto';
 
 type TenantParam = { tenantId: string };
 
@@ -34,6 +35,15 @@ export class TrainingPlansController {
     @Param('customerId') customerId: string,
   ) {
     return this.service.getOrCreatePlan(tenant.tenantId, customerId);
+  }
+
+  @Post('customer/:customerId/import')
+  importPlan(
+    @CurrentTenant() tenant: TenantParam,
+    @Param('customerId') customerId: string,
+    @Body() dto: ImportTrainingPlanDto,
+  ) {
+    return this.service.importPlan(tenant.tenantId, customerId, dto);
   }
 
   @Post('days')

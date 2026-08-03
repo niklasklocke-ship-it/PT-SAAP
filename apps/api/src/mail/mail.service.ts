@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
@@ -38,6 +38,65 @@ export class MailService {
       subject: 'Passwort zurücksetzen - PT One',
       text: `Klicke auf den folgenden Link, um dein Passwort zurückzusetzen (gültig für 1 Stunde):\n\n${resetUrl}\n\nFalls du das nicht angefordert hast, kannst du diese E-Mail ignorieren.`,
       html: `<p>Klicke auf den folgenden Link, um dein Passwort zurückzusetzen (gültig für 1 Stunde):</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Falls du das nicht angefordert hast, kannst du diese E-Mail ignorieren.</p>`,
+    });
+  }
+
+  // Anders als beim Passwort-Reset (bewusst stiller Fallback) wirft dies bei
+  // fehlendem SMTP eine klare Exception - der Trainer klickt hier aktiv auf
+  // "senden" und muss ein Feedback bekommen, statt eine stillschweigend nie
+  // verschickte Mail anzunehmen.
+  async sendInvoiceEmail(
+    to: string,
+    data: {
+      tenantName: string;
+      customerName: string;
+      invoiceNumber: string;
+      amount: string;
+      taxRate: string;
+      issuedAt: Date;
+      dueAt: Date | null;
+      pdfBuffer: Buffer;
+      pdfFilename: string;
+    },
+  ): Promise<void> {
+    const transporter = this.getTransporter();
+    if (!transporter) {
+      throw new InternalServerErrorException(
+        'E-Mail-Versand ist nicht konfiguriert (SMTP-Zugangsdaten fehlen)',
+      );
+    }
+
+    const formattedDate = data.issuedAt.toLocaleDateString('de-DE');
+    const dueLine = data.dueAt
+      ? `Fällig am: ${data.dueAt.toLocaleDateString('de-DE')}\n`
+      : '';
+    const dueLineHtml = data.dueAt
+      ? `<p>Fällig am: ${data.dueAt.toLocaleDateString('de-DE')}</p>`
+      : '';
+
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || 'PT One <no-reply@pt-one.app>',
+      to,
+      subject: `Rechnung ${data.invoiceNumber} von ${data.tenantName}`,
+      text:
+        `Hallo ${data.customerName},\n\n` +
+        `anbei die Rechnung ${data.invoiceNumber} vom ${formattedDate}.\n\n` +
+        `Betrag: ${data.amount} € (zzgl. ${data.taxRate}% MwSt.)\n` +
+        dueLine +
+        `\nViele Grüße\n${data.tenantName}`,
+      html:
+        `<p>Hallo ${data.customerName},</p>` +
+        `<p>anbei die Rechnung <strong>${data.invoiceNumber}</strong> vom ${formattedDate}.</p>` +
+        `<p>Betrag: <strong>${data.amount} €</strong> (zzgl. ${data.taxRate}% MwSt.)</p>` +
+        dueLineHtml +
+        `<p>Viele Grüße<br>${data.tenantName}</p>`,
+      attachments: [
+        {
+          filename: data.pdfFilename,
+          content: data.pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ],
     });
   }
 }
